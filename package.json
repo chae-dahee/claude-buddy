@@ -1,0 +1,32 @@
+{
+  "name": "claude-buddy",
+  "version": "0.1.0",
+  "description": "A terminal buddy character for Claude Code — reacts to tool results and stop events via hooks, zero tokens consumed.",
+  "keywords": ["claude", "claude-code", "terminal", "ascii", "hook", "buddy"],
+  "homepage": "https://github.com/yourusername/claude-buddy",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "claude-buddy": "bin/claude-buddy.cjs"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "scripts/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "node --test tests/",
+    "postinstall": "node scripts/postinstall.cjs",
+    "preuninstall": "node scripts/preuninstall.cjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
