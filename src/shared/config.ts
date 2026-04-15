@@ -20,6 +20,8 @@ export interface BuddyConfig {
   name: string;
   /** Unix timestamp of first initialisation */
   createdAt: number;
+  /** Whether the always-on full sprite is shown in the status line (default: true) */
+  active: boolean;
 }
 
 function ensureDir(): void {
@@ -35,7 +37,12 @@ export function loadConfig(): BuddyConfig {
     const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
     const parsed = JSON.parse(raw) as Partial<BuddyConfig>;
     if (typeof parsed.id === 'string' && parsed.id && parsed.name && parsed.createdAt) {
-      return { id: parsed.id, name: parsed.name, createdAt: parsed.createdAt };
+      return {
+        id: parsed.id,
+        name: parsed.name,
+        createdAt: parsed.createdAt,
+        active: parsed.active !== false, // default true for existing configs
+      };
     }
   } catch {
     // Fall through to init
@@ -49,6 +56,7 @@ export function initConfig(): BuddyConfig {
     id: crypto.randomUUID(),
     name: 'Buddy',
     createdAt: Date.now(),
+    active: true,
   };
   saveConfig(config);
   return config;
