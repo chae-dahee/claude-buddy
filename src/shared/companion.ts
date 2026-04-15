@@ -13,6 +13,18 @@ import type { Species, Eye, Hat, Rarity, StatName, CompanionBones, StoredCompani
 const CLAUDE_JSON_PATH = path.join(os.homedir(), '.claude.json');
 const SALT = 'friend-2026-401';
 
+/**
+ * Optional pin file at ~/.claude-buddy/companion.json.
+ * Allows overriding computed bones for users whose Claude Code runs under Bun
+ * (Bun.hash ≠ FNV-1a, so the deterministic roll may differ from what Claude Code shows).
+ *
+ * Create manually or via `claude-buddy companion --rarity epic --species blob --eye ✦`
+ */
+const COMPANION_PIN_PATH = path.join(
+  process.env['CLAUDE_BUDDY_STATE_DIR'] ?? path.join(os.homedir(), '.claude-buddy'),
+  'companion.json',
+);
+
 // ─── Hash & PRNG ─────────────────────────────────────────────────────────────
 
 /** FNV-1a hash → 32-bit unsigned integer (Node.js path; Bun uses Bun.hash) */
@@ -148,9 +160,33 @@ export function companionUserId(): string {
   return 'anon';
 }
 
-/** Load companion: stored soul + deterministically computed bones */
+/** Read pinned bones from ~/.claude-buddy/companion.json (partial override allowed) */
+export function readPinnedBones(): Partial<CompanionBones> | undefined {
+  try {
+    const raw = fs.readFileSync(COMPANION_PIN_PATH, 'utf-8');
+    return JSON.parse(raw) as Partial<CompanionBones>;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Write pinned bones to ~/.claude-buddy/companion.json */
+export function savePinnedBones(override: Partial<CompanionBones>): void {
+  const dir = path.dirname(COMPANION_PIN_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(COMPANION_PIN_PATH, JSON.stringify(override, null, 2), 'utf-8');
+}
+
+/** Remove the pin file (revert to computed bones) */
+export function clearPinnedBones(): void {
+  try { fs.unlinkSync(COMPANION_PIN_PATH); } catch { /* already gone */ }
+}
+
+/** Load companion: stored soul + bones (computed, then patched with any pin file) */
 export function loadCompanion(): { bones: CompanionBones; stored: StoredCompanion } {
   const stored = readStoredCompanion() ?? { name: 'Buddy', personality: '', hatchedAt: 0 };
-  const bones = roll(companionUserId());
+  const computed = roll(companionUserId());
+  const pin = readPinnedBones();
+  const bones: CompanionBones = pin ? { ...computed, ...pin } : computed;
   return { bones, stored };
 }
