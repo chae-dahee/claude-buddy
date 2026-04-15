@@ -50,18 +50,18 @@ async function main() {
       break;
     }
     default: {
-      console.log(`claude-buddy — terminal companion for Claude Code
+      console.log(`claude-buddy — terminal companion
 
 Usage:
   claude-buddy install          Add hooks & status line to ~/.claude/settings.json
   claude-buddy uninstall        Remove buddy configuration
   claude-buddy status           Show current buddy state
   claude-buddy reset            Reset buddy state to defaults
-  claude-buddy companion        Show companion species/rarity/eye/hat
-  claude-buddy companion --rarity epic --species blob --eye ✦ --hat none
-                                Pin companion bones (fix Bun vs Node hash mismatch)
-  claude-buddy companion --clear
-                                Revert to computed bones
+  claude-buddy companion        Show companion species/rarity/eye/hat/stats
+  claude-buddy companion --reroll
+                                Roll a brand-new random companion
+  claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown
+                                Directly edit companion fields
 `);
       if (command) process.exit(1);
       break;
