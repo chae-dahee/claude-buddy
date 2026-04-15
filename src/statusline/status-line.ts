@@ -9,8 +9,8 @@ import { loadCompanion } from '../shared/companion.js';
 function main(): void {
   try {
     const state = loadState();
-    const { bones, stored } = loadCompanion();
-    process.stdout.write(renderStatusLine(state, bones, stored.name) + '\n');
+    const { bones, name } = loadCompanion();
+    process.stdout.write(renderStatusLine(state, bones, name) + '\n');
   } catch {
     process.stdout.write('◉ Buddy\n');
   }
