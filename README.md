@@ -1,17 +1,17 @@
 # claude-buddy
 
-A terminal companion for [Claude Code](https://claude.ai/code).  
-Reacts to tool results and session stops with ASCII speech bubbles — **zero tokens consumed**.
+A terminal companion — reacts to tool results and session stops with ASCII speech bubbles. **Zero tokens consumed.**
 
 ```
 ╭────────────────────────────────────╮
 │ All tests passing! Woohoo!         │
 ╰────────────────────────────────────╯
     \
- ╭───╮
- │ ★ │
- ╰─▽─╯
-Buddy Lv.3 [████████░░] 82/100 XP
+   .----.
+ ( ✦  ✦ )
+  (      )
+   `----´
+Buddy Lv.3 [████████░░] 82/100 XP ★★
 ```
 
 ---
@@ -57,50 +57,66 @@ Restart Claude Code after installation to activate.
 | `claude-buddy install` | Add hooks + status line to `~/.claude/settings.json` |
 | `claude-buddy uninstall` | Remove claude-buddy from settings |
 | `claude-buddy status` | Show current buddy state (name, level, XP, mood) |
+| `claude-buddy show` | Display buddy with full sprite in terminal (no Claude session needed) |
 | `claude-buddy reset` | Reset state to defaults |
+| `claude-buddy companion` | Show companion species / rarity / eye / hat / stats |
+| `claude-buddy companion --reroll` | Roll a brand-new random companion |
+| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Edit companion fields directly |
 
 Install is **idempotent** — running it multiple times never creates duplicate hooks.
 
 ---
 
-## Reaction system
+## Companion system
 
-8 reaction types, each with its own ASCII face, message pool, and XP reward:
+On first run, a random companion is rolled from the gacha table and saved to `~/.claude-buddy/companion.json`.  
+Use `--reroll` to get a new one at any time.
 
-| Reaction | Trigger | XP | Mood |
-|----------|---------|-----|------|
-| `test_pass` | Test pass patterns in Bash output | +8 | excited |
-| `refactor` | Refactor keywords in transcript | +6 | happy |
-| `code_written` | Code written in response | +5 | happy |
-| `bash_success` | Bash exits 0 (no other strong signal) | +3 | happy |
-| `explanation` | Explanation keywords in transcript | +3 | neutral |
-| `test_fail` | Test failure patterns in Bash output | +2 | sad |
-| `bash_error` | Non-zero exit code | +1 | worried |
-| `idle` | No strong signal | +1 | tired |
+**Rarity distribution:**
 
-Every 100 XP → level up with a special celebration bubble.
+| Rarity | Chance | Stars |
+|--------|--------|-------|
+| Common | 60% | ★ |
+| Uncommon | 25% | ★★ |
+| Rare | 10% | ★★★ |
+| Epic | 4% | ★★★★ |
+| Legendary | 1% | ★★★★★ |
 
-Detection priority for **PostToolUse**: `bash_error` (exit_code ≠ 0) → `test_fail` (override if fail patterns found) → `test_pass` → `bash_success`.  
-Detection priority for **Stop**: `bash_error` → `refactor` → `code_written` → `explanation` → `idle`.
+18 species · 6 eye styles · 8 hats (uncommon+) · 1% shiny chance · 5 stats (DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK)
 
 ---
 
-## State file
+## Reaction system
 
-Stored at `~/.claude-buddy/state.json`:
+8 reaction types, each with its own message pool and XP reward:
 
-```json
-{
-  "name": "Buddy",
-  "mood": "excited",
-  "xp": 42,
-  "level": 1,
-  "lastReaction": "test_pass",
-  "lastUpdated": 1713081600000
-}
-```
+| Reaction | Trigger | XP | Mood |
+|----------|---------|-----|------|
+| `test_pass` | Test pass patterns in Bash output | +10 | excited |
+| `code_written` | Code written keywords in transcript | +5 | happy |
+| `refactor` | Refactor keywords in transcript | +5 | happy |
+| `explanation` | General explanation in transcript | +3 | neutral |
+| `idle` | No strong signal | +2 | tired |
+| `bash_error` | Non-zero exit code | +1 | worried |
+| `test_fail` | Test failure patterns in Bash output | +1 | sad |
+| `error_mentioned` | Error/bug keywords in transcript | +1 | worried |
 
-Edit `name` directly to rename your buddy.  
+Every 100 XP → level up with a special celebration bubble.
+
+**PostToolUse detection priority:** `test_fail` (if fail pattern matches) → `bash_error` (non-zero exit or error field) → `test_pass` → `idle`  
+**Stop detection priority:** `error_mentioned` → `refactor` → `code_written` → `explanation` → `idle`
+
+---
+
+## Local files
+
+| Path | Description |
+|------|-------------|
+| `~/.claude-buddy/config.json` | Stable UUID seed, companion name, creation timestamp |
+| `~/.claude-buddy/companion.json` | Rolled companion bones (species, rarity, eye, hat, stats) |
+| `~/.claude-buddy/state.json` | Session state (mood, XP, level, last reaction message) |
+
+Edit `name` in `config.json` to rename your buddy.  
 Override the directory with `CLAUDE_BUDDY_STATE_DIR` (useful for testing).
 
 ---
@@ -113,8 +129,6 @@ Override the directory with `CLAUDE_BUDDY_STATE_DIR` (useful for testing).
 | Linux | `/dev/tty` | ✓ |
 | Windows | `\\.\CON` (stderr fallback) | ✓ |
 
-On Windows, if `\\.\CON` is unavailable (e.g. certain CI environments), output falls back to stderr, which still reaches the terminal.
-
 **Node.js ≥ 18 required.**
 
 ---
@@ -126,47 +140,62 @@ git clone https://github.com/chae-dahee/claude-buddy
 cd claude-buddy
 npm install --ignore-scripts   # skip postinstall during dev
 npm run build                  # tsc → dist/
-npm test                       # 55 unit + integration tests
+npm test                       # 100 unit + integration tests
 
 # Manual PostToolUse hook test
 echo '{"tool_name":"Bash","tool_response":{"output":"5 tests passed","exit_code":0}}' \
   | CLAUDE_BUDDY_STATE_DIR=/tmp/buddy-test node dist/hooks/post-tool-use.js
 
-# Level-up test (seed xp=99, trigger test_pass → should reach level 2)
-mkdir -p /tmp/buddy-test
-echo '{"name":"Buddy","mood":"neutral","xp":99,"level":1,"lastReaction":"","lastUpdated":0}' \
-  > /tmp/buddy-test/state.json
-echo '{"tool_name":"Bash","tool_response":{"output":"3 tests passed","exit_code":0}}' \
-  | CLAUDE_BUDDY_STATE_DIR=/tmp/buddy-test node dist/hooks/post-tool-use.js
-cat /tmp/buddy-test/state.json   # level should be 2
+# Show buddy directly in terminal
+node bin/claude-buddy.cjs show
 
-# CLI test
-node bin/claude-buddy.cjs status
-node bin/claude-buddy.cjs reset
+# Roll a new random companion
+node bin/claude-buddy.cjs companion --reroll
 ```
 
 ### Project structure
 
 ```
 src/
-  shared/       # types, state, mood, render, tty, transcript
-  hooks/        # post-tool-use.ts, stop.ts
-  statusline/   # status-line.ts
-  cli/          # install, uninstall, status, reset, settings
-  index.ts      # public API re-exports
+  shared/
+    config.ts       # BuddyConfig (UUID seed, name) — ~/.claude-buddy/config.json
+    companion.ts    # Gacha engine (rollFrom, rollRandom, loadCompanion, storage)
+    types.ts        # Shared TypeScript types
+    state.ts        # XP / level persistence — ~/.claude-buddy/state.json
+    mood.ts         # Reaction detection & REACTION_MAP
+    render.ts       # ASCII sprite rendering
+    tty.ts          # Terminal output (cross-platform /dev/tty)
+    transcript.ts   # JSONL transcript parser
+  hooks/
+    post-tool-use.ts  # PostToolUse hook (Bash reactions)
+    stop.ts           # Stop hook (session-end reactions)
+  statusline/
+    status-line.ts    # One-line status bar for statusLineCommand
+  cli/
+    install.ts        # Add hooks to ~/.claude/settings.json
+    uninstall.ts      # Remove hooks
+    status.ts         # Show buddy state
+    show.ts           # Display full sprite in terminal
+    reset.ts          # Reset state to defaults
+    companion.ts      # Show / reroll / edit companion
+    settings.ts       # Settings read/write utilities
+  index.ts            # Public API re-exports
 bin/
-  claude-buddy.cjs   # CJS wrapper — dynamic import() into ESM dist
+  claude-buddy.cjs    # CJS wrapper — dynamic import() into ESM dist
 scripts/
-  postinstall.cjs    # npm install -g lifecycle hook
-  preuninstall.cjs   # npm uninstall -g lifecycle hook
+  postinstall.cjs     # npm install -g lifecycle hook
+  preuninstall.cjs    # npm uninstall -g lifecycle hook
 tests/
-  state.test.js        # state persistence unit tests
-  mood.test.js         # reaction detection unit tests
-  render.test.js       # ASCII rendering unit tests
-  transcript.test.js   # JSONL parser unit tests
-  settings.test.js     # settings manager unit tests
-  integration.test.js  # full hook binary integration tests
-dist/                  # compiled output (not in git; included in npm tarball)
+  companion.test.js   # Gacha engine unit tests (hash, PRNG, roll, storage)
+  config.test.js      # Config lifecycle unit tests
+  mood.test.js        # Reaction detection unit tests
+  render.test.js      # ASCII rendering unit tests
+  show.test.js        # CLI show command integration tests
+  state.test.js       # State persistence unit tests
+  transcript.test.js  # JSONL parser unit tests
+  settings.test.js    # Settings manager unit tests
+  integration.test.js # Full hook binary integration tests
+dist/                 # Compiled output (not in git; included in npm tarball)
 ```
 
 ---
