@@ -62,6 +62,8 @@ Restart Claude Code after installation to activate.
 | `claude-buddy companion` | Show companion species / rarity / eye / hat / stats |
 | `claude-buddy companion --reroll` | Roll a brand-new random companion |
 | `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Edit companion fields directly |
+| `claude-buddy active on` | Enable always-on full sprite in the status bar |
+| `claude-buddy active off` | Hide buddy from status bar |
 
 Install is **idempotent** — running it multiple times never creates duplicate hooks.
 
@@ -74,15 +76,17 @@ Use `--reroll` to get a new one at any time.
 
 **Rarity distribution:**
 
-| Rarity | Chance | Stars |
-|--------|--------|-------|
-| Common | 60% | ★ |
-| Uncommon | 25% | ★★ |
-| Rare | 10% | ★★★ |
-| Epic | 4% | ★★★★ |
-| Legendary | 1% | ★★★★★ |
+| Rarity | Chance | Stars | Bubble border |
+|--------|--------|-------|---------------|
+| Common | 60% | ★ | `╭─╮` rounded |
+| Uncommon | 25% | ★★ | `╭─╮` rounded |
+| Rare | 10% | ★★★ | `╔═╗` double |
+| Epic | 4% | ★★★★ | `╔★══★╗` double + ★ accents |
+| Legendary | 1% | ★★★★★ | `╔✦══✦╗` double + ✦ accents |
 
 18 species · 6 eye styles · 8 hats (uncommon+) · 1% shiny chance · 5 stats (DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK)
+
+Shiny companions display a sparkle decoration line (`✦ ✨ ✦ ✨ ✦ ✨ ✦`) below the info line.
 
 ---
 
