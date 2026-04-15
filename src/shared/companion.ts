@@ -8,6 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as crypto from 'crypto';
 import type { Species, Eye, Hat, Rarity, StatName, CompanionBones } from './types.js';
 import { loadConfig } from './config.js';
 
@@ -123,6 +124,13 @@ export function roll(seed: string): CompanionBones {
   return rollFrom(mulberry32(hashString(seed + SALT)));
 }
 
+/** Roll bones with true randomness (crypto.getRandomValues) */
+export function rollRandom(): CompanionBones {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return rollFrom(mulberry32(buf[0]!));
+}
+
 // ─── Companion storage ────────────────────────────────────────────────────────
 
 /** Read stored bones from ~/.claude-buddy/companion.json */
@@ -143,11 +151,17 @@ export function saveStoredBones(bones: CompanionBones): void {
 }
 
 /**
- * Load companion: bones derived from own config UUID (no ~/.claude.json read).
+ * Load companion: reads stored bones from companion.json.
+ * On first run (no file), rolls a random pet and saves it automatically.
  * Returns bones + companion name from config.
  */
 export function loadCompanion(): { bones: CompanionBones; name: string } {
   const config = loadConfig();
-  const bones = roll(config.id);
+  const stored = readStoredBones();
+  const bones = stored ?? (() => {
+    const fresh = rollRandom();
+    saveStoredBones(fresh);
+    return fresh;
+  })();
   return { bones, name: config.name };
 }

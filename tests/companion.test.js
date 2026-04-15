@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hashString, mulberry32, rollFrom, roll } from '../dist/shared/companion.js';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { hashString, mulberry32, rollFrom, roll, rollRandom } from '../dist/shared/companion.js';
+
+const DIST = new URL('../dist', import.meta.url).pathname;
 
 const VALID_SPECIES = new Set([
   'duck','goose','blob','cat','dragon','octopus',
@@ -135,4 +141,94 @@ test('roll produces valid bones for any string seed', () => {
   assert.ok(VALID_SPECIES.has(bones.species));
   assert.ok(VALID_EYES.has(bones.eye));
   assert.ok(VALID_RARITY.has(bones.rarity));
+});
+
+// ─── rollRandom ───────────────────────────────────────────────────────────────
+
+test('rollRandom produces valid bones structure', () => {
+  const bones = rollRandom();
+  assert.ok(VALID_RARITY.has(bones.rarity));
+  assert.ok(VALID_SPECIES.has(bones.species));
+  assert.ok(VALID_EYES.has(bones.eye));
+  assert.ok(VALID_HATS.has(bones.hat));
+  assert.equal(typeof bones.shiny, 'boolean');
+  for (const stat of VALID_STATS) {
+    assert.ok(bones.stats[stat] >= 1 && bones.stats[stat] <= 100);
+  }
+});
+
+test('rollRandom produces different results on repeated calls', () => {
+  const results = new Set();
+  for (let i = 0; i < 20; i++) {
+    const b = rollRandom();
+    results.add(`${b.species}-${b.rarity}-${b.eye}`);
+  }
+  // 20 rolls should not all be identical (astronomically unlikely)
+  assert.ok(results.size > 1, 'rollRandom should produce varied results');
+});
+
+// ─── readStoredBones / saveStoredBones ────────────────────────────────────────
+
+function runScript(stateDir, script) {
+  return spawnSync(
+    process.execPath,
+    ['--input-type=module', '--eval', script],
+    {
+      encoding: 'utf-8',
+      env: { ...process.env, CLAUDE_BUDDY_STATE_DIR: stateDir },
+      timeout: 5000,
+    }
+  );
+}
+
+test('saveStoredBones persists bones, readStoredBones reads them back', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'buddy-bones-'));
+  try {
+    const result = runScript(dir, `
+      import { rollRandom, saveStoredBones, readStoredBones } from 'file://${join(DIST, 'shared/companion.js')}';
+      const bones = rollRandom();
+      saveStoredBones(bones);
+      const loaded = readStoredBones();
+      process.stdout.write(JSON.stringify({ original: bones, loaded }));
+    `);
+    assert.equal(result.status, 0, result.stderr);
+    const { original, loaded } = JSON.parse(result.stdout);
+    assert.deepEqual(original, loaded, 'Loaded bones should match saved bones');
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test('loadCompanion auto-rolls and saves on first run', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'buddy-bones-'));
+  try {
+    const result = runScript(dir, `
+      import { loadCompanion, readStoredBones } from 'file://${join(DIST, 'shared/companion.js')}';
+      const { bones } = loadCompanion();
+      const stored = readStoredBones();
+      process.stdout.write(JSON.stringify({ bones, stored }));
+    `);
+    assert.equal(result.status, 0, result.stderr);
+    const { bones, stored } = JSON.parse(result.stdout);
+    assert.deepEqual(bones, stored, 'Auto-rolled bones should be saved to disk');
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test('loadCompanion returns same bones on repeated calls', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'buddy-bones-'));
+  try {
+    const result = runScript(dir, `
+      import { loadCompanion } from 'file://${join(DIST, 'shared/companion.js')}';
+      const a = loadCompanion();
+      const b = loadCompanion();
+      process.stdout.write(JSON.stringify({ a: a.bones, b: b.bones }));
+    `);
+    assert.equal(result.status, 0, result.stderr);
+    const { a, b } = JSON.parse(result.stdout);
+    assert.deepEqual(a, b, 'Same bones should be returned on repeated loadCompanion calls');
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
 });
