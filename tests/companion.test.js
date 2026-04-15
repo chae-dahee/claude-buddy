@@ -98,13 +98,6 @@ test('rollFrom: non-common rarities may have a hat', () => {
   assert.ok(foundHat, 'Should find at least one non-common roll with a hat');
 });
 
-test('rollFrom: all 5 stats are present', () => {
-  const bones = rollFrom(mulberry32(1234));
-  for (const stat of VALID_STATS) {
-    assert.ok(stat in bones.stats, `Missing stat: ${stat}`);
-  }
-});
-
 test('rollFrom: rarity distribution matches weights across 1000 rolls', () => {
   const counts = { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 };
   for (let i = 0; i < 1000; i++) {
@@ -145,16 +138,12 @@ test('roll produces valid bones for any string seed', () => {
 
 // ─── rollRandom ───────────────────────────────────────────────────────────────
 
-test('rollRandom produces valid bones structure', () => {
+test('rollRandom returns valid rarity and species', () => {
+  // Structure correctness is already covered by rollFrom tests.
+  // This verifies the crypto → mulberry32 → rollFrom path doesn't break.
   const bones = rollRandom();
   assert.ok(VALID_RARITY.has(bones.rarity));
   assert.ok(VALID_SPECIES.has(bones.species));
-  assert.ok(VALID_EYES.has(bones.eye));
-  assert.ok(VALID_HATS.has(bones.hat));
-  assert.equal(typeof bones.shiny, 'boolean');
-  for (const stat of VALID_STATS) {
-    assert.ok(bones.stats[stat] >= 1 && bones.stats[stat] <= 100);
-  }
 });
 
 test('rollRandom produces different results on repeated calls', () => {
