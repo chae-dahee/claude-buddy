@@ -1,11 +1,33 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderSpeechBubble, renderStatusLine, renderLevelUp, xpBar, FACES } from '../dist/shared/render.js';
+import {
+  xpBar,
+  SPRITES, HAT_LINES, FACE_INLINE, RARITY_STARS,
+  renderSprite, renderFaceInline,
+  renderSpeechBubble, renderStatusLine, renderLevelUp,
+} from '../dist/shared/render.js';
+
+const ALL_SPECIES = [
+  'duck','goose','blob','cat','dragon','octopus',
+  'owl','penguin','turtle','snail','ghost','axolotl',
+  'capybara','cactus','robot','rabbit','mushroom','chonk',
+];
+
+const mockBones = {
+  rarity: 'common',
+  species: 'blob',
+  eye: '◉',
+  hat: 'none',
+  shiny: false,
+  stats: { DEBUGGING: 10, PATIENCE: 10, CHAOS: 10, WISDOM: 10, SNARK: 10 },
+};
 
 const baseState = {
   name: 'Buddy', mood: 'neutral', xp: 45, level: 1,
-  lastReaction: 'Hello!', lastUpdated: Date.now(),
+  lastReaction: '', lastUpdated: Date.now(),
 };
+
+// ─── xpBar ───────────────────────────────────────────────────────────────────
 
 test('xpBar: 0 XP = all empty', () => {
   assert.equal(xpBar(0), '░░░░░░░░░░');
@@ -25,48 +47,155 @@ test('xpBar: 95 XP = 9 filled', () => {
 
 test('xpBar: always returns exactly 10 characters', () => {
   for (const xp of [0, 1, 50, 99, 100, 150, 999]) {
-    const bar = xpBar(xp);
-    assert.equal([...bar].length, 10, `xpBar(${xp}) length should be 10`);
+    assert.equal([...xpBar(xp)].length, 10, `xpBar(${xp}) should be 10 chars`);
   }
 });
 
-test('FACES has all 6 mood entries with 3 lines each', () => {
-  const moods = ['neutral', 'happy', 'excited', 'worried', 'sad', 'tired'];
-  for (const mood of moods) {
-    assert.ok(FACES[mood], `Missing face for mood: ${mood}`);
-    assert.equal(FACES[mood].length, 3, `Face for ${mood} should have 3 lines`);
+// ─── SPRITES ─────────────────────────────────────────────────────────────────
+
+test('SPRITES has all 18 species', () => {
+  assert.equal(Object.keys(SPRITES).length, 18);
+  for (const s of ALL_SPECIES) {
+    assert.ok(SPRITES[s], `Missing sprite for: ${s}`);
   }
 });
+
+test('every sprite has exactly 4 lines', () => {
+  for (const s of ALL_SPECIES) {
+    assert.equal(SPRITES[s].length, 4, `${s} should have 4 lines`);
+  }
+});
+
+// ─── FACE_INLINE ─────────────────────────────────────────────────────────────
+
+test('FACE_INLINE has all 18 species', () => {
+  assert.equal(Object.keys(FACE_INLINE).length, 18);
+  for (const s of ALL_SPECIES) {
+    assert.ok(FACE_INLINE[s], `Missing inline face for: ${s}`);
+  }
+});
+
+// ─── RARITY_STARS ─────────────────────────────────────────────────────────────
+
+test('RARITY_STARS has all 5 rarities', () => {
+  const rarities = ['common','uncommon','rare','epic','legendary'];
+  for (const r of rarities) {
+    assert.ok(RARITY_STARS[r], `Missing stars for: ${r}`);
+  }
+  assert.equal(RARITY_STARS['legendary'], '★★★★★');
+  assert.equal(RARITY_STARS['common'], '★');
+});
+
+// ─── renderSprite ─────────────────────────────────────────────────────────────
+
+test('renderSprite returns 4 lines for no-hat species', () => {
+  assert.equal(renderSprite(mockBones).length, 4);
+});
+
+test('renderSprite returns 5 lines when hat is equipped', () => {
+  const bones = { ...mockBones, rarity: 'uncommon', hat: 'crown' };
+  const lines = renderSprite(bones);
+  assert.equal(lines.length, 5);
+  assert.ok(lines[0].includes('^'), 'Crown hat line should contain ^');
+});
+
+test('renderSprite replaces {E} with the eye character', () => {
+  const bones = { ...mockBones, species: 'blob', eye: '✦' };
+  const result = renderSprite(bones).join('\n');
+  assert.ok(result.includes('✦'), 'Should contain eye char');
+  assert.ok(!result.includes('{E}'), 'Should not contain {E} placeholder');
+});
+
+test('renderSprite differs across species', () => {
+  const blob = renderSprite({ ...mockBones, species: 'blob' });
+  const cat  = renderSprite({ ...mockBones, species: 'cat'  });
+  assert.notDeepEqual(blob, cat);
+});
+
+test('renderSprite differs across eye styles', () => {
+  const a = renderSprite({ ...mockBones, eye: '·' }).join('');
+  const b = renderSprite({ ...mockBones, eye: '×' }).join('');
+  assert.notEqual(a, b);
+});
+
+// ─── renderFaceInline ─────────────────────────────────────────────────────────
+
+test('renderFaceInline substitutes {E} with eye', () => {
+  const face = renderFaceInline({ ...mockBones, eye: '@' });
+  assert.ok(face.includes('@'));
+  assert.ok(!face.includes('{E}'));
+});
+
+test('renderFaceInline differs across species', () => {
+  const duck = renderFaceInline({ ...mockBones, species: 'duck' });
+  const owl  = renderFaceInline({ ...mockBones, species: 'owl'  });
+  assert.notEqual(duck, owl);
+});
+
+// ─── renderSpeechBubble ───────────────────────────────────────────────────────
 
 test('renderSpeechBubble contains message, name, level, XP', () => {
-  const out = renderSpeechBubble(baseState, 'Hello!');
-  assert.ok(out.includes('Hello!'), 'Should contain message');
-  assert.ok(out.includes('Buddy'), 'Should contain name');
-  assert.ok(out.includes('Lv.1'), 'Should contain level');
-  assert.ok(out.includes('XP'), 'Should contain XP label');
+  const out = renderSpeechBubble(baseState, 'Hello!', mockBones, 'Voidwarp');
+  assert.ok(out.includes('Hello!'));
+  assert.ok(out.includes('Voidwarp'));
+  assert.ok(out.includes('Lv.1'));
+  assert.ok(out.includes('XP'));
+});
+
+test('renderSpeechBubble shows rarity stars', () => {
+  const out = renderSpeechBubble(baseState, 'Hi', mockBones);
+  assert.ok(out.includes('★'));
+});
+
+test('renderSpeechBubble shows ✨ for shiny companion', () => {
+  const out = renderSpeechBubble(baseState, 'Hi', { ...mockBones, shiny: true });
+  assert.ok(out.includes('✨'));
+});
+
+test('renderSpeechBubble does not show ✨ for non-shiny', () => {
+  const out = renderSpeechBubble(baseState, 'Hi', { ...mockBones, shiny: false });
+  // levelUp marker ✨ won't appear either since we're testing renderSpeechBubble directly
+  assert.ok(!out.includes('✨'));
 });
 
 test('renderSpeechBubble is multi-line', () => {
-  const out = renderSpeechBubble(baseState, 'Hi');
-  assert.ok(out.includes('\n'), 'Should be multi-line');
+  const out = renderSpeechBubble(baseState, 'Hi', mockBones);
+  assert.ok(out.includes('\n'));
 });
 
-test('renderStatusLine is a single line', () => {
-  const out = renderStatusLine(baseState);
-  assert.ok(!out.includes('\n'), 'Should be single line');
+test('renderSpeechBubble falls back to state.name if no companionName', () => {
+  const out = renderSpeechBubble(baseState, 'Hi', mockBones);
   assert.ok(out.includes('Buddy'));
+});
+
+// ─── renderStatusLine ─────────────────────────────────────────────────────────
+
+test('renderStatusLine is a single line', () => {
+  const out = renderStatusLine(baseState, mockBones);
+  assert.ok(!out.includes('\n'));
+});
+
+test('renderStatusLine includes name and level', () => {
+  const out = renderStatusLine(baseState, mockBones, 'Voidwarp');
+  assert.ok(out.includes('Voidwarp'));
   assert.ok(out.includes('Lv.1'));
 });
 
-test('renderStatusLine changes with mood', () => {
-  const happy = renderStatusLine({ ...baseState, mood: 'happy' });
-  const sad = renderStatusLine({ ...baseState, mood: 'sad' });
-  assert.notEqual(happy, sad, 'Different moods should produce different status lines');
+test('renderStatusLine uses state.name as fallback', () => {
+  const out = renderStatusLine(baseState, mockBones);
+  assert.ok(out.includes('Buddy'));
 });
 
+test('renderStatusLine differs across species', () => {
+  const blob = renderStatusLine(baseState, { ...mockBones, species: 'blob' });
+  const duck = renderStatusLine(baseState, { ...mockBones, species: 'duck' });
+  assert.notEqual(blob, duck);
+});
+
+// ─── renderLevelUp ────────────────────────────────────────────────────────────
+
 test('renderLevelUp contains new level', () => {
-  const state = { ...baseState, level: 3 };
-  const out = renderLevelUp(state);
-  assert.ok(out.includes('Lv.3'), 'Should mention new level');
-  assert.ok(out.includes('LEVEL UP'), 'Should say LEVEL UP');
+  const out = renderLevelUp({ ...baseState, level: 3 });
+  assert.ok(out.includes('Lv.3'));
+  assert.ok(out.includes('LEVEL UP'));
 });
