@@ -190,7 +190,21 @@ export function xpBar(xp: number): string {
 
 // ─── Speech bubble ────────────────────────────────────────────────────────────
 
-function speechBubble(text: string): string[] {
+type BorderDef = {
+  tl: string; tr: string; bl: string; br: string;
+  h: string; v: string;
+  accent: string;
+};
+
+export const RARITY_BORDERS: Record<Rarity, BorderDef> = {
+  common:    { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', accent: '' },
+  uncommon:  { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', accent: '' },
+  rare:      { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║', accent: '' },
+  epic:      { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║', accent: '★' },
+  legendary: { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║', accent: '✦' },
+};
+
+function speechBubble(text: string, rarity: Rarity): string[] {
   const maxWidth = 40;
   const words = text.split(' ');
   const lines: string[] = [];
@@ -205,10 +219,17 @@ function speechBubble(text: string): string[] {
   }
   if (current) lines.push(current);
   const width = Math.max(...lines.map((l) => l.length), 10);
+  const b = RARITY_BORDERS[rarity];
+  const top = b.accent
+    ? `${b.tl}${b.accent}${b.h.repeat(width)}${b.accent}${b.tr}`
+    : `${b.tl}${b.h.repeat(width + 2)}${b.tr}`;
+  const bot = b.accent
+    ? `${b.bl}${b.accent}${b.h.repeat(width)}${b.accent}${b.br}`
+    : `${b.bl}${b.h.repeat(width + 2)}${b.br}`;
   return [
-    `╭${'─'.repeat(width + 2)}╮`,
-    ...lines.map((l) => `│ ${l.padEnd(width)} │`),
-    `╰${'─'.repeat(width + 2)}╯`,
+    top,
+    ...lines.map((l) => `${b.v} ${l.padEnd(width)} ${b.v}`),
+    bot,
   ];
 }
 
@@ -222,15 +243,18 @@ export function renderSpeechBubble(
   const name  = companionName ?? state.name;
   const bar   = xpBar(state.xp);
   const stars = RARITY_STARS[bones.rarity];
-  const shiny = bones.shiny ? ' ✨' : '';
-  const info  = `${name} Lv.${state.level} [${bar}] ${state.xp % 100}/100 XP ${stars}${shiny}`;
+  const info  = `${name} Lv.${state.level} [${bar}] ${state.xp % 100}/100 XP ${stars}`;
 
-  return [
-    ...speechBubble(message),
+  const parts: string[] = [
+    ...speechBubble(message, bones.rarity),
     '    \\',
     ...renderSprite(bones),
     info,
-  ].join('\n');
+  ];
+
+  if (bones.shiny) parts.push('  ✦ ✨ ✦ ✨ ✦ ✨ ✦');
+
+  return parts.join('\n');
 }
 
 /** One-line status for statusLineCommand */
