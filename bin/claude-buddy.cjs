@@ -54,6 +54,11 @@ async function main() {
       runShow();
       break;
     }
+    case 'active': {
+      const { runActive } = await load('cli/active.js');
+      runActive(args);
+      break;
+    }
     default: {
       console.log(`claude-buddy — terminal companion
 
@@ -68,6 +73,7 @@ Usage:
                                 Roll a brand-new random companion
   claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown
                                 Directly edit companion fields
+  claude-buddy active on|off    Toggle always-on full sprite in the status bar
 `);
       if (command) process.exit(1);
       break;
