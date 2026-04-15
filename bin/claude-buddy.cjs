@@ -49,6 +49,11 @@ async function main() {
       runCompanion(args);
       break;
     }
+    case 'show': {
+      const { runShow } = await load('cli/show.js');
+      runShow();
+      break;
+    }
     default: {
       console.log(`claude-buddy — terminal companion
 
@@ -56,6 +61,7 @@ Usage:
   claude-buddy install          Add hooks & status line to ~/.claude/settings.json
   claude-buddy uninstall        Remove buddy configuration
   claude-buddy status           Show current buddy state
+  claude-buddy show             Show buddy with full sprite in terminal
   claude-buddy reset            Reset buddy state to defaults
   claude-buddy companion        Show companion species/rarity/eye/hat/stats
   claude-buddy companion --reroll
