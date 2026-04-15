@@ -133,11 +133,27 @@ export function rollRandom(): CompanionBones {
 
 // ─── Companion storage ────────────────────────────────────────────────────────
 
-/** Read stored bones from ~/.claude-buddy/companion.json */
+const STAT_NAMES = ['DEBUGGING', 'PATIENCE', 'CHAOS', 'WISDOM', 'SNARK'] as const;
+
+function isValidBones(v: unknown): v is CompanionBones {
+  if (!v || typeof v !== 'object') return false;
+  const b = v as Record<string, unknown>;
+  if (typeof b['rarity'] !== 'string') return false;
+  if (typeof b['species'] !== 'string') return false;
+  if (typeof b['eye'] !== 'string') return false;
+  if (typeof b['hat'] !== 'string') return false;
+  if (typeof b['shiny'] !== 'boolean') return false;
+  if (!b['stats'] || typeof b['stats'] !== 'object') return false;
+  const stats = b['stats'] as Record<string, unknown>;
+  return STAT_NAMES.every((s) => typeof stats[s] === 'number');
+}
+
+/** Read stored bones from ~/.claude-buddy/companion.json (returns undefined if missing or invalid) */
 export function readStoredBones(): CompanionBones | undefined {
   try {
     const raw = fs.readFileSync(COMPANION_PATH, 'utf-8');
-    return JSON.parse(raw) as CompanionBones;
+    const parsed = JSON.parse(raw) as unknown;
+    return isValidBones(parsed) ? parsed : undefined;
   } catch {
     return undefined;
   }
