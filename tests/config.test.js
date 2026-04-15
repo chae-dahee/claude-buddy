@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -114,6 +114,44 @@ test('saveConfig persists changes', () => {
     `);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout.trim(), 'Sparky');
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test('loadConfig defaults active to true on fresh install', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'buddy-cfg-'));
+  try {
+    const result = runScript(dir, `
+      import { loadConfig } from 'file://${join(DIST, 'shared/config.js')}';
+      const cfg = loadConfig();
+      process.stdout.write(String(cfg.active));
+    `);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim(), 'true', 'active should default to true');
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test('loadConfig treats missing active field in existing config as true', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'buddy-cfg-'));
+  try {
+    // Write a config without the active field (simulates old config format)
+    writeFileSync(join(dir, 'config.json'), JSON.stringify({
+      id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+      name: 'OldBuddy',
+      createdAt: 1700000000000,
+    }));
+    const result = runScript(dir, `
+      import { loadConfig } from 'file://${join(DIST, 'shared/config.js')}';
+      const cfg = loadConfig();
+      process.stdout.write(JSON.stringify({ active: cfg.active, name: cfg.name }));
+    `);
+    assert.equal(result.status, 0, result.stderr);
+    const { active, name } = JSON.parse(result.stdout);
+    assert.equal(active, true, 'missing active field should default to true');
+    assert.equal(name, 'OldBuddy', 'existing name should be preserved');
   } finally {
     rmSync(dir, { recursive: true });
   }
