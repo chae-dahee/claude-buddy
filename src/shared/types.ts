@@ -26,12 +26,6 @@ export interface CompanionBones {
   stats: Record<StatName, number>;
 }
 
-export interface StoredCompanion {
-  name: string;
-  personality: string;
-  hatchedAt: number;
-}
-
 // ─── Reaction system ─────────────────────────────────────────────────────────
 
 export type ReactionType =

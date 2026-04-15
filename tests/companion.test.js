@@ -114,25 +114,24 @@ test('rollFrom: rarity distribution matches weights across 1000 rolls', () => {
   }
 });
 
-// ─── roll ─────────────────────────────────────────────────────────────────────
+// ─── roll (pure seed function) ────────────────────────────────────────────────
 
-test('roll is deterministic — same userId produces same bones', () => {
-  const a = roll('user-abc-123');
-  const b = roll('user-abc-123');
+test('roll is deterministic — same seed produces same bones', () => {
+  const a = roll('seed-abc-123');
+  const b = roll('seed-abc-123');
   assert.deepEqual(a, b);
 });
 
-test('roll produces different bones for different userIds', () => {
-  const a = roll('user-abc-123');
-  const b = roll('user-xyz-456');
-  // At least one field must differ (probability of collision is astronomically low)
+test('roll produces different bones for different seeds', () => {
+  const a = roll('seed-abc-123');
+  const b = roll('seed-xyz-456');
   const same = a.species === b.species && a.eye === b.eye
     && a.rarity === b.rarity && a.hat === b.hat;
-  assert.ok(!same, 'Different userIds should produce different bones');
+  assert.ok(!same, 'Different seeds should produce different bones');
 });
 
-test('roll produces valid bones for anon fallback', () => {
-  const bones = roll('anon');
+test('roll produces valid bones for any string seed', () => {
+  const bones = roll('some-uuid-value');
   assert.ok(VALID_SPECIES.has(bones.species));
   assert.ok(VALID_EYES.has(bones.eye));
   assert.ok(VALID_RARITY.has(bones.rarity));

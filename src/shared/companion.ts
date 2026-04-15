@@ -1,33 +1,26 @@
 /**
- * Companion system — deterministic gacha roll + ~/.claude.json reader.
+ * Companion system — gacha roll engine.
  *
- * Bones (species, eye, hat, rarity, shiny, stats) are recomputed every time
- * from the userId hash so they can never be faked by editing the config file.
- * Only the soul (name, personality, hatchedAt) is read from ~/.claude.json.
+ * Bones (species, eye, hat, rarity, shiny, stats) are recomputed from the
+ * stable UUID stored in ~/.claude-buddy/config.json so they are consistent
+ * across sessions without depending on ~/.claude.json.
  */
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import type { Species, Eye, Hat, Rarity, StatName, CompanionBones, StoredCompanion } from './types.js';
+import type { Species, Eye, Hat, Rarity, StatName, CompanionBones } from './types.js';
+import { loadConfig } from './config.js';
 
-const CLAUDE_JSON_PATH = path.join(os.homedir(), '.claude.json');
-const SALT = 'friend-2026-401';
-
-/**
- * Optional pin file at ~/.claude-buddy/companion.json.
- * Allows overriding computed bones for users whose Claude Code runs under Bun
- * (Bun.hash ≠ FNV-1a, so the deterministic roll may differ from what Claude Code shows).
- *
- * Create manually or via `claude-buddy companion --rarity epic --species blob --eye ✦`
- */
-const COMPANION_PIN_PATH = path.join(
+const COMPANION_PATH = path.join(
   process.env['CLAUDE_BUDDY_STATE_DIR'] ?? path.join(os.homedir(), '.claude-buddy'),
   'companion.json',
 );
 
+const SALT = 'friend-2026-401';
+
 // ─── Hash & PRNG ─────────────────────────────────────────────────────────────
 
-/** FNV-1a hash → 32-bit unsigned integer (Node.js path; Bun uses Bun.hash) */
+/** FNV-1a hash → 32-bit unsigned integer */
 export function hashString(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -125,68 +118,36 @@ export function rollFrom(rng: () => number): CompanionBones {
   return { rarity, species, eye, hat, shiny, stats };
 }
 
-/** Roll bones deterministically from a userId string */
-export function roll(userId: string): CompanionBones {
-  return rollFrom(mulberry32(hashString(userId + SALT)));
+/** Roll bones deterministically from a string seed */
+export function roll(seed: string): CompanionBones {
+  return rollFrom(mulberry32(hashString(seed + SALT)));
 }
 
-// ─── ~/.claude.json readers ───────────────────────────────────────────────────
+// ─── Companion storage ────────────────────────────────────────────────────────
 
-/** Read stored soul from ~/.claude.json → config.companion */
-export function readStoredCompanion(): StoredCompanion | undefined {
+/** Read stored bones from ~/.claude-buddy/companion.json */
+export function readStoredBones(): CompanionBones | undefined {
   try {
-    const raw = fs.readFileSync(CLAUDE_JSON_PATH, 'utf-8');
-    const config = JSON.parse(raw) as Record<string, unknown>;
-    const companion = config['companion'] as StoredCompanion | undefined;
-    if (!companion?.name) return undefined;
-    return companion;
+    const raw = fs.readFileSync(COMPANION_PATH, 'utf-8');
+    return JSON.parse(raw) as CompanionBones;
   } catch {
     return undefined;
   }
 }
 
-/** Resolve userId from ~/.claude.json (OAuth → local → 'anon') */
-export function companionUserId(): string {
-  try {
-    const raw = fs.readFileSync(CLAUDE_JSON_PATH, 'utf-8');
-    const config = JSON.parse(raw) as Record<string, unknown>;
-    const oauth = config['oauthAccount'] as Record<string, string> | undefined;
-    if (oauth?.accountUuid) return oauth.accountUuid;
-    const userID = config['userID'] as string | undefined;
-    if (userID) return userID;
-  } catch {
-    // fallback to 'anon'
-  }
-  return 'anon';
-}
-
-/** Read pinned bones from ~/.claude-buddy/companion.json (partial override allowed) */
-export function readPinnedBones(): Partial<CompanionBones> | undefined {
-  try {
-    const raw = fs.readFileSync(COMPANION_PIN_PATH, 'utf-8');
-    return JSON.parse(raw) as Partial<CompanionBones>;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Write pinned bones to ~/.claude-buddy/companion.json */
-export function savePinnedBones(override: Partial<CompanionBones>): void {
-  const dir = path.dirname(COMPANION_PIN_PATH);
+/** Write bones to ~/.claude-buddy/companion.json */
+export function saveStoredBones(bones: CompanionBones): void {
+  const dir = path.dirname(COMPANION_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(COMPANION_PIN_PATH, JSON.stringify(override, null, 2), 'utf-8');
+  fs.writeFileSync(COMPANION_PATH, JSON.stringify(bones, null, 2), 'utf-8');
 }
 
-/** Remove the pin file (revert to computed bones) */
-export function clearPinnedBones(): void {
-  try { fs.unlinkSync(COMPANION_PIN_PATH); } catch { /* already gone */ }
-}
-
-/** Load companion: stored soul + bones (computed, then patched with any pin file) */
-export function loadCompanion(): { bones: CompanionBones; stored: StoredCompanion } {
-  const stored = readStoredCompanion() ?? { name: 'Buddy', personality: '', hatchedAt: 0 };
-  const computed = roll(companionUserId());
-  const pin = readPinnedBones();
-  const bones: CompanionBones = pin ? { ...computed, ...pin } : computed;
-  return { bones, stored };
+/**
+ * Load companion: bones derived from own config UUID (no ~/.claude.json read).
+ * Returns bones + companion name from config.
+ */
+export function loadCompanion(): { bones: CompanionBones; name: string } {
+  const config = loadConfig();
+  const bones = roll(config.id);
+  return { bones, name: config.name };
 }

@@ -37,7 +37,7 @@ function main(): void {
     const config = REACTION_MAP[reactionType];
 
     const state = loadState();
-    const { bones, stored } = loadCompanion();
+    const { bones, name } = loadCompanion();
     const message = pickMessage(config.messages);
     const { state: updatedState, leveledUp } = applyXp(
       { ...state, mood: config.mood, lastReaction: message, lastUpdated: Date.now() },
@@ -46,7 +46,7 @@ function main(): void {
 
     saveState(updatedState);
 
-    writeTty(renderSpeechBubble(updatedState, message, bones, stored.name));
+    writeTty(renderSpeechBubble(updatedState, message, bones, name));
     if (leveledUp) writeTty(renderLevelUp(updatedState));
   } catch {
     // Never crash Claude session

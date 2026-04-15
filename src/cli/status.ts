@@ -4,8 +4,7 @@ import { loadCompanion } from '../shared/companion.js';
 
 export function runStatus(): void {
   const state = loadState();
-  const { bones, stored } = loadCompanion();
-  const name = stored.name;
+  const { bones, name } = loadCompanion();
   const info = [
     `Name:    ${name}`,
     `Species: ${bones.species}  ${bones.shiny ? '✨' : ''}`,
