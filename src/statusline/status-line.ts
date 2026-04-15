@@ -1,14 +1,16 @@
 /**
  * statusLineCommand entry point.
- * Reads state.json and prints a single-line status to stdout.
+ * Reads state.json + ~/.claude.json and prints a single-line status to stdout.
  */
 import { loadState } from '../shared/state.js';
 import { renderStatusLine } from '../shared/render.js';
+import { loadCompanion } from '../shared/companion.js';
 
 function main(): void {
   try {
     const state = loadState();
-    process.stdout.write(renderStatusLine(state) + '\n');
+    const { bones, stored } = loadCompanion();
+    process.stdout.write(renderStatusLine(state, bones, stored.name) + '\n');
   } catch {
     process.stdout.write('◉ Buddy\n');
   }
