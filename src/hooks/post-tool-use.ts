@@ -13,9 +13,6 @@
 import { readFileSync } from 'fs';
 import { loadState, saveState, applyXp } from '../shared/state.js';
 import { REACTION_MAP, detectPostToolReaction, pickMessage } from '../shared/mood.js';
-import { renderSpeechBubble, renderLevelUp } from '../shared/render.js';
-import { loadCompanion } from '../shared/companion.js';
-import { writeTty } from '../shared/tty.js';
 import type { PostToolUsePayload } from '../shared/types.js';
 
 function main(): void {
@@ -45,7 +42,6 @@ function main(): void {
     const config = REACTION_MAP[reactionType];
 
     const state = loadState();
-    const { bones, name } = loadCompanion();
     const message = pickMessage(config.messages);
     const { state: updatedState } = applyXp(
       { ...state, mood: config.mood, lastReaction: message, lastUpdated: Date.now() },
