@@ -14,10 +14,11 @@ export interface ClaudeSettings {
   [key: string]: unknown;
   hooks?: {
     PostToolUse?: Array<{ matcher: string; hooks: Array<{ type: string; command: string }> }>;
-    Stop?: Array<{ type: string; command: string }>;
+    Stop?: Array<{ matcher: string; hooks: Array<{ type: string; command: string }> }>;
     [key: string]: unknown;
   };
-  statusLineCommand?: string;
+  /** Claude Code v2.1+ nested schema: { type: 'command', command: '...' } */
+  statusLine?: { type: string; command: string };
 }
 
 export function loadSettings(): ClaudeSettings {
@@ -68,20 +69,25 @@ export function installBuddy(settings: ClaudeSettings): ClaudeSettings {
     (h) => !(h as unknown as Record<string, unknown>)[BUDDY_MARKER]
   );
   const buddyStop = {
-    type: 'command',
-    command: stopCmd,
+    matcher: '',
+    hooks: [{ type: 'command', command: stopCmd }],
     [BUDDY_MARKER]: true,
   };
 
-  return {
+  const newSettings = {
     ...settings,
-    statusLineCommand: statusLineCmd,
+    statusLine: { type: 'command', command: statusLineCmd },
     hooks: {
       ...(settings.hooks ?? {}),
       PostToolUse: [...existingPostToolUse, buddyPostToolUse],
       Stop: [...existingStop, buddyStop],
     },
   };
+
+  // Drop the legacy flat key if a prior install left it behind
+  delete (newSettings as Record<string, unknown>)['statusLineCommand'];
+
+  return newSettings;
 }
 
 export function uninstallBuddy(settings: ClaudeSettings): ClaudeSettings {
@@ -95,7 +101,9 @@ export function uninstallBuddy(settings: ClaudeSettings): ClaudeSettings {
   );
 
   const newSettings = { ...settings };
-  delete newSettings.statusLineCommand;
+  delete newSettings.statusLine;
+  // Also drop the legacy flat key in case an older install wrote it
+  delete (newSettings as Record<string, unknown>)['statusLineCommand'];
   newSettings.hooks = { ...hooks, PostToolUse, Stop };
 
   // Clean up empty arrays
