@@ -84,7 +84,7 @@ test('runActive with no args exits with code 1', () => {
   }
 });
 
-test('status-line outputs full sprite when active=true', () => {
+test('status-line outputs single-line status when active=true', () => {
   const dir = mkdtempSync(join(tmpdir(), 'buddy-active-'));
   try {
     const result = runScript(dir, `
@@ -104,8 +104,11 @@ test('status-line outputs full sprite when active=true', () => {
       }
     );
     assert.equal(slResult.status, 0, slResult.stderr);
-    assert.ok(slResult.stdout.includes('╭'), 'Should output speech bubble top border');
+    assert.ok(slResult.stdout.length > 0, 'Should produce output when active');
     assert.ok(slResult.stdout.includes('Lv.'), 'Should output level info');
+    // Exactly one trailing newline, no interior newlines (never overlaps ❯ input)
+    const trimmed = slResult.stdout.replace(/\n$/, '');
+    assert.ok(!trimmed.includes('\n'), 'Should be a single line (no interior newlines)');
   } finally {
     rmSync(dir, { recursive: true });
   }
@@ -131,7 +134,7 @@ test('status-line outputs empty string when active=false', () => {
       }
     );
     assert.equal(slResult.status, 0, slResult.stderr);
-    assert.equal(slResult.stdout, '', 'Should output empty string when inactive');
+    assert.equal(slResult.stdout.trim(), '', 'Should output nothing meaningful when inactive');
   } finally {
     rmSync(dir, { recursive: true });
   }

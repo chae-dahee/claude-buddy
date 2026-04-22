@@ -1,5 +1,5 @@
 /**
- * `claude-buddy active on|off` — toggle always-on full sprite in the status line.
+ * `claude-buddy active on|off` — toggle the compact one-line status display.
  */
 import { loadConfig, saveConfig } from '../shared/config.js';
 

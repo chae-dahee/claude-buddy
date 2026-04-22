@@ -1,10 +1,10 @@
 /**
  * statusLineCommand entry point.
- * When active=true → outputs full sprite + speech bubble (always-on display).
+ * Outputs a single-line status so Claude Code's ❯ input never overlaps the sprite.
  * When active=false → outputs empty string (hidden).
  */
 import { loadState } from '../shared/state.js';
-import { renderSpeechBubble } from '../shared/render.js';
+import { renderStatusLine } from '../shared/render.js';
 import { loadCompanion } from '../shared/companion.js';
 import { loadConfig } from '../shared/config.js';
 
@@ -26,15 +26,15 @@ function main(): void {
   try {
     const config = loadConfig();
     if (!config.active) {
-      process.stdout.write('');
+      process.stdout.write('\n');
       return;
     }
     const state = loadState();
     const { bones, name } = loadCompanion();
     const message = state.lastReaction || randomGreeting();
-    process.stdout.write(renderSpeechBubble(state, message, bones, name) + '\n');
+    process.stdout.write(`${renderStatusLine(state, bones, name)} · ${message}\n`);
   } catch {
-    process.stdout.write('');
+    process.stdout.write('\n');
   }
 }
 

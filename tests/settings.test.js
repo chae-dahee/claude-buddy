@@ -2,11 +2,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installBuddy, uninstallBuddy } from '../dist/cli/settings.js';
 
-test('installBuddy: adds statusLineCommand and hooks to empty settings', () => {
+test('installBuddy: adds statusLine and hooks to empty settings', () => {
   const result = installBuddy({});
-  assert.ok(result.statusLineCommand, 'Should set statusLineCommand');
+  assert.ok(result.statusLine, 'Should set statusLine');
+  assert.equal(result.statusLine.type, 'command');
+  assert.ok(result.statusLine.command.includes('status-line.js'));
+  assert.equal(result.statusLineCommand, undefined, 'Must not set legacy statusLineCommand key');
   assert.ok(result.hooks?.PostToolUse?.length, 'Should add PostToolUse hook');
   assert.ok(result.hooks?.Stop?.length, 'Should add Stop hook');
+});
+
+test('installBuddy: drops legacy statusLineCommand key if present', () => {
+  const legacy = { statusLineCommand: 'node /old/path.js' };
+  const result = installBuddy(legacy);
+  assert.equal(result.statusLineCommand, undefined, 'Legacy flat key should be removed');
+  assert.ok(result.statusLine, 'Nested statusLine should be present');
 });
 
 test('installBuddy: PostToolUse hook has Bash matcher', () => {
@@ -33,11 +43,19 @@ test('installBuddy: does not duplicate buddy hooks on re-install', () => {
 test('uninstallBuddy: removes buddy keys, preserves others', () => {
   const installed = installBuddy({ theme: 'dark' });
   const uninstalled = uninstallBuddy(installed);
+  assert.equal(uninstalled.statusLine, undefined);
   assert.equal(uninstalled.statusLineCommand, undefined);
   assert.equal(uninstalled.theme, 'dark');
   const remaining = (uninstalled.hooks?.PostToolUse ?? [])
     .filter(h => h.__claude_buddy__).length;
   assert.equal(remaining, 0);
+});
+
+test('uninstallBuddy: also drops legacy statusLineCommand key', () => {
+  const mixed = { statusLineCommand: 'node /old/path.js', theme: 'dark' };
+  const uninstalled = uninstallBuddy(mixed);
+  assert.equal(uninstalled.statusLineCommand, undefined, 'Legacy flat key should be stripped');
+  assert.equal(uninstalled.theme, 'dark');
 });
 
 test('uninstallBuddy: cleans up hooks entirely when empty', () => {
