@@ -9,9 +9,16 @@ import * as fs from 'fs';
  *
  * Because we write to the terminal device rather than stdout, the text appears
  * in the user's terminal but is NOT captured by Claude Code as hook output.
+ *
+ * The trailing newlines push subsequent terminal content (Claude Code's TUI
+ * redraw of the input/status area) past the written content, scrolling the
+ * sprite up into the scrollback buffer where it's preserved without being
+ * overwritten by absolute-positioned ANSI codes.
  */
+const TRAILING_PAD = '\n'.repeat(8);
+
 export function writeTty(text: string): void {
-  const output = `\n${text}\n`;
+  const output = `\n${text}\n${TRAILING_PAD}`;
 
   if (process.platform === 'win32') {
     writeWindows(output);

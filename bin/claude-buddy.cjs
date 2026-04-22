@@ -34,11 +34,6 @@ async function main() {
       runUninstall({ silent: args.includes('--silent') });
       break;
     }
-    case 'status': {
-      const { runStatus } = await load('cli/status.js');
-      runStatus();
-      break;
-    }
     case 'reset': {
       const { runReset } = await load('cli/reset.js');
       runReset();
@@ -59,13 +54,17 @@ async function main() {
       runActive(args);
       break;
     }
+    case 'sprite': {
+      const { runSprite } = await load('cli/sprite.js');
+      runSprite(args);
+      break;
+    }
     default: {
       console.log(`claude-buddy — terminal companion
 
 Usage:
   claude-buddy install          Add hooks & status line to ~/.claude/settings.json
   claude-buddy uninstall        Remove buddy configuration
-  claude-buddy status           Show current buddy state
   claude-buddy show             Show buddy with full sprite in terminal
   claude-buddy reset            Reset buddy state to defaults
   claude-buddy companion        Show companion species/rarity/eye/hat/stats
@@ -73,7 +72,8 @@ Usage:
                                 Roll a brand-new random companion
   claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown
                                 Directly edit companion fields
-  claude-buddy active on|off    Toggle always-on full sprite in the status bar
+  claude-buddy active on|off    Toggle compact one-line status (status bar)
+  claude-buddy sprite on|off    Toggle full character sprite in scrollback on Stop
 `);
       if (command) process.exit(1);
       break;

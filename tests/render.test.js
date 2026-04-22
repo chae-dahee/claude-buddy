@@ -4,7 +4,7 @@ import {
   xpBar,
   SPRITES, HAT_LINES, FACE_INLINE, RARITY_STARS, RARITY_BORDERS,
   renderSprite, renderFaceInline,
-  renderSpeechBubble, renderStatusLine, renderLevelUp,
+  renderSpeechBubble, renderStatusLine, renderLevelUp, renderFullSprite,
 } from '../dist/shared/render.js';
 
 const ALL_SPECIES = [
@@ -190,6 +190,35 @@ test('renderStatusLine differs across species', () => {
   const blob = renderStatusLine(baseState, { ...mockBones, species: 'blob' });
   const duck = renderStatusLine(baseState, { ...mockBones, species: 'duck' });
   assert.notEqual(blob, duck);
+});
+
+// ─── renderFullSprite ─────────────────────────────────────────────────────────
+
+test('renderFullSprite is multi-line', () => {
+  const out = renderFullSprite(baseState, 'Hi', mockBones);
+  assert.ok(out.split('\n').length >= 5);
+});
+
+test('renderFullSprite contains sprite, name, level, message', () => {
+  const out = renderFullSprite(baseState, 'Patiently waiting...', mockBones, 'Voidwarp');
+  assert.ok(out.includes('Voidwarp'));
+  assert.ok(out.includes('Lv.1'));
+  assert.ok(out.includes('Patiently waiting...'));
+});
+
+test('renderFullSprite has NO speech bubble border (character-focused)', () => {
+  const out = renderFullSprite(baseState, 'Hi', mockBones);
+  // common rarity bubble border chars must be absent
+  assert.ok(!out.includes('╭'), 'Should not include common bubble top-left');
+  assert.ok(!out.includes('╰'), 'Should not include common bubble bottom-left');
+  // rare bubble border chars must be absent too
+  assert.ok(!out.includes('╔'));
+  assert.ok(!out.includes('╚'));
+});
+
+test('renderFullSprite shows ✨ sparkle line for shiny companion', () => {
+  const out = renderFullSprite(baseState, 'Hi', { ...mockBones, shiny: true });
+  assert.ok(out.includes('✨'));
 });
 
 // ─── renderLevelUp ────────────────────────────────────────────────────────────
