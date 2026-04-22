@@ -20,8 +20,10 @@ export interface BuddyConfig {
   name: string;
   /** Unix timestamp of first initialisation */
   createdAt: number;
-  /** Whether the always-on full sprite is shown in the status line (default: true) */
+  /** Whether the compact one-line status is shown in Claude Code's status line (default: true) */
   active: boolean;
+  /** Whether the full character sprite is written to the terminal scrollback on each Stop event (default: false) */
+  sprite: boolean;
 }
 
 function ensureDir(): void {
@@ -42,6 +44,7 @@ export function loadConfig(): BuddyConfig {
         name: parsed.name,
         createdAt: parsed.createdAt,
         active: parsed.active !== false, // default true for existing configs
+        sprite: parsed.sprite === true,  // default false for existing configs
       };
     }
   } catch {
@@ -57,6 +60,7 @@ export function initConfig(): BuddyConfig {
     name: 'Buddy',
     createdAt: Date.now(),
     active: true,
+    sprite: false,
   };
   saveConfig(config);
   return config;

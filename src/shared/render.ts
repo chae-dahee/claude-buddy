@@ -257,6 +257,33 @@ export function renderSpeechBubble(
   return parts.join('\n');
 }
 
+/**
+ * Character-focused multi-line render for the scrollback (`/dev/tty`) display.
+ * Sprite is the visual centerpiece; name/level/XP and reaction message sit on a
+ * single info line below it. Unlike `renderSpeechBubble`, no bubble border —
+ * the user explicitly does not want speech-bubble framing here.
+ */
+export function renderFullSprite(
+  state: BuddyState,
+  message: string,
+  bones: CompanionBones,
+  companionName?: string,
+): string {
+  const name  = companionName ?? state.name;
+  const bar   = xpBar(state.xp);
+  const stars = RARITY_STARS[bones.rarity];
+  const info  = `${name} Lv.${state.level} [${bar}] ${stars} · ${message}`;
+
+  const parts: string[] = [
+    ...renderSprite(bones),
+    info,
+  ];
+
+  if (bones.shiny) parts.push('  ✦ ✨ ✦ ✨ ✦ ✨ ✦');
+
+  return parts.join('\n');
+}
+
 /** One-line status for statusLineCommand */
 export function renderStatusLine(
   state: BuddyState,
