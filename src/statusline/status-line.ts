@@ -25,7 +25,7 @@ function currentFrame(): 0 | 1 {
 }
 
 function main(): void {
-  drainStdin();
+  const input = readStdinJson();
   try {
     const config = loadConfig();
     const { bones } = loadCompanion();
