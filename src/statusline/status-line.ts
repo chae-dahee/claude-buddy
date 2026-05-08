@@ -6,47 +6,30 @@
  *
  *   node /path/to/dist/statusline/status-line.js
  *
- * Reads stdin (Claude Code pipes its session JSON) to extract transcript_path,
- * then uses transcript line count to determine which frame (0 or 1) to render.
- * Frame 1 uses EYE_ALT for a blinking/alternating expression effect.
- * Never modifies settings.json. Failures are silent.
+ * Frame toggles every 60 seconds (2-minute cycle) for a subtle blink effect.
+ * Reads (drains) stdin to avoid EPIPE; payload is not used.
+ * Failures are silent — the statusline must never break the user's prompt.
  */
 import { readFileSync } from 'fs';
 import { loadCompanion } from '../shared/companion.js';
 import { loadConfig } from '../shared/config.js';
 import { renderCharacter } from '../shared/render.js';
 
-interface StatusLineInput {
-  transcript_path?: string;
+function drainStdin(): void {
+  try { readFileSync(0, 'utf-8'); } catch { /* no-op */ }
 }
 
-function readStdinJson(): StatusLineInput {
-  try {
-    const raw = readFileSync(0, 'utf-8');
-    return JSON.parse(raw) as StatusLineInput;
-  } catch {
-    return {};
-  }
-}
-
-function frameFromTranscript(p: string | undefined): 0 | 1 {
-  if (!p) return 0;
-  try {
-    const raw = readFileSync(p, 'utf-8');
-    const lineCount = raw.split('\n').filter((l) => l.length > 0).length;
-    return (lineCount % 2) as 0 | 1;
-  } catch {
-    return 0;
-  }
+/** Toggle frame every 60s for a 2-minute blink cycle. */
+function currentFrame(): 0 | 1 {
+  return (Math.floor(Date.now() / 60000) % 2) as 0 | 1;
 }
 
 function main(): void {
-  const input = readStdinJson();
+  drainStdin();
   try {
     const config = loadConfig();
     const { bones } = loadCompanion();
-    const frame = frameFromTranscript(input.transcript_path);
-    const lines = renderCharacter(bones, config, { frame });
+    const lines = renderCharacter(bones, config, { frame: currentFrame() });
     process.stdout.write(lines.join('\n') + '\n');
   } catch {
     // Silent: never break the host statusline
