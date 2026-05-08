@@ -4,7 +4,7 @@ import {
   progressBar,
   progressionFromAge,
   renderCharacter,
-  SPRITES, FACE_INLINE, RARITY_STARS, RARITY_COLORS,
+  SPRITES, FACE_INLINE, RARITY_STARS, RARITY_COLORS, EYE_ALT,
   renderSprite, renderFaceInline,
 } from '../dist/shared/render.js';
 
@@ -194,4 +194,32 @@ test('renderCharacter: info line contains rarity name for non-common', () => {
     const info = stripAnsi(lines[lines.length - 1]);
     assert.ok(info.includes(r), `info line should include rarity name "${r}"`);
   }
+});
+
+// ─── Frame toggle (EYE_ALT) ────────────────────────────────────────────────────
+
+test('EYE_ALT covers all 6 eye types', () => {
+  for (const e of ['·','✦','×','◉','@','°']) {
+    assert.ok(typeof EYE_ALT[e] === 'string' && EYE_ALT[e].length > 0, e);
+  }
+});
+
+test('renderSprite frame:1 substitutes EYE_ALT character', () => {
+  const f0 = renderSprite({ ...mockBones, eye: '✦' }, 0).join('\n');
+  const f1 = renderSprite({ ...mockBones, eye: '✦' }, 1).join('\n');
+  assert.ok(f0.includes('✦'));
+  assert.ok(!f0.includes(EYE_ALT['✦']));
+  assert.ok(f1.includes(EYE_ALT['✦']));
+});
+
+test('renderCharacter frame:1 propagates to sprite', () => {
+  const f0 = renderCharacter({ ...mockBones, eye: '◉' }, mockConfig, { withMessage: false, frame: 0 });
+  const f1 = renderCharacter({ ...mockBones, eye: '◉' }, mockConfig, { withMessage: false, frame: 1 });
+  assert.notDeepEqual(f0, f1);
+});
+
+test('renderCharacter default frame matches frame:0', () => {
+  const def = renderCharacter(mockBones, mockConfig, { withMessage: false });
+  const f0  = renderCharacter(mockBones, mockConfig, { withMessage: false, frame: 0 });
+  assert.deepEqual(def, f0);
 });

@@ -172,15 +172,28 @@ export const RARITY_COLORS: Record<Rarity, string> = {
 
 const RESET = '\x1b[0m';
 
+// ─── Expression frames ────────────────────────────────────────────────────────
+
+/** Frame-1 (alt) eye characters keyed by base Eye. */
+export const EYE_ALT: Record<Eye, string> = {
+  '·': '_',
+  '✦': '·',
+  '×': '+',
+  '◉': '-',
+  '@': '×',
+  '°': "'",
+};
+
 // ─── Render helpers ───────────────────────────────────────────────────────────
 
-function applyEye(template: string, eye: Eye): string {
+function applyEye(template: string, eye: string): string {
   return template.replaceAll('{E}', eye);
 }
 
 /** Render species sprite lines, with hat prepended if equipped */
-export function renderSprite(bones: CompanionBones): string[] {
-  const lines = SPRITES[bones.species].map((l) => applyEye(l, bones.eye));
+export function renderSprite(bones: CompanionBones, frame: 0 | 1 = 0): string[] {
+  const eyeChar = frame === 0 ? bones.eye : EYE_ALT[bones.eye];
+  const lines = SPRITES[bones.species].map((l) => applyEye(l, eyeChar));
   if (bones.hat !== 'none') {
     return [HAT_LINES[bones.hat], ...lines];
   }
@@ -230,6 +243,8 @@ export interface CharacterRenderOptions {
   rng?: () => number;
   /** When false, suppress the random one-liner (used by `claude-buddy show`) */
   withMessage?: boolean;
+  /** 0 = base eye, 1 = EYE_ALT. Defaults to 0. */
+  frame?: 0 | 1;
 }
 
 /**
@@ -258,7 +273,8 @@ export function renderCharacter(
     : `${head} · ${pickMessage(now, opts.rng)}`;
 
   // Apply rarity color to each sprite line for a cohesive look
-  const spriteLines = renderSprite(bones).map((l) => color ? `${color}${l}${reset}` : l);
+  const frame = opts.frame ?? 0;
+  const spriteLines = renderSprite(bones, frame).map((l) => color ? `${color}${l}${reset}` : l);
 
   const lines = [...spriteLines, info];
   if (bones.shiny) lines.push(`${color}  ✦ ✨ ✦ ✨ ✦${reset}`);
