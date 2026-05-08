@@ -151,7 +151,7 @@ export const FACE_INLINE: Record<Species, string> = {
   chonk:    '({E}..{E})',
 };
 
-// ─── Rarity stars ─────────────────────────────────────────────────────────────
+// ─── Rarity stars & colors ───────────────────────────────────────────────────
 
 export const RARITY_STARS: Record<Rarity, string> = {
   common:    '★',
@@ -160,6 +160,17 @@ export const RARITY_STARS: Record<Rarity, string> = {
   epic:      '★★★★',
   legendary: '★★★★★',
 };
+
+/** ANSI color per rarity. Empty string = no color (common uses terminal default). */
+export const RARITY_COLORS: Record<Rarity, string> = {
+  common:    '',
+  uncommon:  '\x1b[32m',   // green
+  rare:      '\x1b[94m',   // bright blue
+  epic:      '\x1b[95m',   // bright magenta (purple)
+  legendary: '\x1b[93m',   // bright yellow (gold)
+};
+
+const RESET = '\x1b[0m';
 
 // ─── Render helpers ───────────────────────────────────────────────────────────
 
@@ -234,15 +245,22 @@ export function renderCharacter(
   const now = opts.now ?? new Date();
   const { level, progress } = progressionFromAge(config.createdAt, now.getTime());
 
-  const stars = RARITY_STARS[bones.rarity];
-  const bar   = progressBar(progress);
+  const color = RARITY_COLORS[bones.rarity];
+  const reset = color ? RESET : '';
 
-  const head = `${config.name} Lv.${level} [${bar}] ${stars}`;
+  const stars      = RARITY_STARS[bones.rarity];
+  const bar        = progressBar(progress);
+  const rarityTag  = `${color}${stars} ${bones.rarity}${reset}`;
+
+  const head = `${config.name} Lv.${level} [${bar}] ${rarityTag}`;
   const info = opts.withMessage === false
     ? head
     : `${head} · ${pickMessage(now, opts.rng)}`;
 
-  const lines = [...renderSprite(bones), info];
-  if (bones.shiny) lines.push('  ✦ ✨ ✦ ✨ ✦');
+  // Apply rarity color to each sprite line for a cohesive look
+  const spriteLines = renderSprite(bones).map((l) => color ? `${color}${l}${reset}` : l);
+
+  const lines = [...spriteLines, info];
+  if (bones.shiny) lines.push(`${color}  ✦ ✨ ✦ ✨ ✦${reset}`);
   return lines;
 }
