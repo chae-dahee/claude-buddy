@@ -1,40 +1,37 @@
 /**
- * statusLineCommand entry point.
- * Outputs a single-line status so Claude Code's ❯ input never overlaps the sprite.
- * When active=false → outputs empty string (hidden).
+ * Statusline character renderer.
+ *
+ * Designed to be appended as ONE line in the user's existing
+ * ~/.claude/statusline-command.sh:
+ *
+ *   node /path/to/dist/statusline/status-line.js
+ *
+ * Reads (drains) stdin if Claude Code pipes its session JSON, but does not
+ * depend on any field. Reads companion bones + config from disk and prints a
+ * multi-line ASCII character to stdout. Never modifies settings.json.
+ *
+ * Failures are silent — the statusline must never break the user's prompt.
  */
-import { loadState } from '../shared/state.js';
-import { renderStatusLine } from '../shared/render.js';
+import { readFileSync } from 'fs';
 import { loadCompanion } from '../shared/companion.js';
 import { loadConfig } from '../shared/config.js';
+import { renderCharacter } from '../shared/render.js';
 
-const GREETINGS = [
-  '안녕! 오늘도 코딩 파이팅!',
-  '같이 버그 잡으러 가자!',
-  '오늘 뭐 만들어?',
-  '커피 마셨어? 나는 항상 준비됨!',
-  '코드 한 줄 한 줄이 다 의미 있어!',
-  'Hello, world!',
-  '오늘도 잘 부탁해~',
-];
-
-function randomGreeting(): string {
-  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)]!;
+function drainStdin(): void {
+  // If stdin is a pipe (Claude Code statusline), draining prevents EPIPE on
+  // upstream. If stdin is a TTY (manual run), readFileSync rejects — ignore.
+  try { readFileSync(0, 'utf-8'); } catch { /* no-op */ }
 }
 
 function main(): void {
+  drainStdin();
   try {
     const config = loadConfig();
-    if (!config.active) {
-      process.stdout.write('\n');
-      return;
-    }
-    const state = loadState();
-    const { bones, name } = loadCompanion();
-    const message = state.lastReaction || randomGreeting();
-    process.stdout.write(`${renderStatusLine(state, bones, name)} · ${message}\n`);
+    const { bones } = loadCompanion();
+    const lines = renderCharacter(bones, config);
+    process.stdout.write(lines.join('\n') + '\n');
   } catch {
-    process.stdout.write('\n');
+    // Silent: never break the host statusline
   }
 }
 
