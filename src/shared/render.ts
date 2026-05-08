@@ -119,13 +119,13 @@ export const SPRITES: Record<Species, string[]> = {
 
 export const HAT_LINES: Record<Hat, string> = {
   none:       '',
-  crown:      '     \\^^^/    ',
-  tophat:     '     [___]    ',
-  propeller:  '      -+-     ',
-  halo:       '     (   )    ',
-  wizard:     '      /^\\    ',
-  beanie:     '     (___)    ',
-  tinyduck:   '       ,>     ',
+  crown:      '   \\^^^/    ',
+  tophat:     '   [___]    ',
+  propeller:  '    -+-     ',
+  halo:       '   (   )    ',
+  wizard:     '    /^\\    ',
+  beanie:     '   (___)    ',
+  tinyduck:   '     ,>     ',
 };
 
 // ─── Compact inline face (for status line) ───────────────────────────────────
