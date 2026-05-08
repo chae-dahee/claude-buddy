@@ -4,7 +4,7 @@ import {
   progressBar,
   progressionFromAge,
   renderCharacter,
-  SPRITES, FACE_INLINE, RARITY_STARS,
+  SPRITES, FACE_INLINE, RARITY_STARS, RARITY_COLORS,
   renderSprite, renderFaceInline,
 } from '../dist/shared/render.js';
 
@@ -158,4 +158,40 @@ test('renderCharacter: rng/now overrides yield deterministic output', () => {
   const a = renderCharacter(mockBones, mockConfig, { now: fixed, rng: () => 0.42 });
   const b = renderCharacter(mockBones, mockConfig, { now: fixed, rng: () => 0.42 });
   assert.deepEqual(a, b);
+});
+
+// ─── RARITY_COLORS ────────────────────────────────────────────────────────────
+
+const stripAnsi = (s) => s.replace(/\x1b\[[0-9;]*m/g, '');
+
+test('RARITY_COLORS: common has no color code', () => {
+  assert.equal(RARITY_COLORS.common, '');
+});
+
+test('RARITY_COLORS: non-common rarities have ANSI escape codes', () => {
+  for (const r of ['uncommon', 'rare', 'epic', 'legendary']) {
+    assert.ok(RARITY_COLORS[r].startsWith('\x1b['), `${r} should have ANSI color`);
+  }
+});
+
+test('renderCharacter: epic output contains ANSI color codes', () => {
+  const epicBones = { ...mockBones, rarity: 'epic' };
+  const lines = renderCharacter(epicBones, mockConfig, { withMessage: false });
+  const raw = lines.join('\n');
+  assert.ok(raw.includes('\x1b['), 'epic output should contain ANSI escape');
+});
+
+test('renderCharacter: common output has no ANSI color codes', () => {
+  const lines = renderCharacter(mockBones, mockConfig, { withMessage: false });
+  const raw = lines.join('\n');
+  assert.ok(!raw.includes('\x1b['), 'common output should have no ANSI escape');
+});
+
+test('renderCharacter: info line contains rarity name for non-common', () => {
+  for (const r of ['uncommon', 'rare', 'epic', 'legendary']) {
+    const bones = { ...mockBones, rarity: r };
+    const lines = renderCharacter(bones, mockConfig, { withMessage: false });
+    const info = stripAnsi(lines[lines.length - 1]);
+    assert.ok(info.includes(r), `info line should include rarity name "${r}"`);
+  }
 });
