@@ -1,52 +1,55 @@
 # claude-buddy
 
-A terminal companion — reacts to tool results and session stops with ASCII speech bubbles. **Zero tokens consumed.**
+A terminal companion for Claude Code — a random-gacha ASCII character that lives inside **your existing statusline**. No hooks, no `/dev/tty` writes, no settings.json modification. **Zero tokens consumed.**
 
 ```
-╭────────────────────────────────────╮
-│ All tests passing! Woohoo!         │
-╰────────────────────────────────────╯
-    \
-   .----.
- ( ✦  ✦ )
-  (      )
-   `----´
-Buddy Lv.3 [████████░░] 82/100 XP ★★
+   /\_/\
+  ( ✦   ✦ )
+  (  ω   )
+  (")_(")
+Buddy Lv.3 [██████░░░░] ★★★ · 오늘도 코딩 파이팅!
 ```
 
 ---
 
 ## How it works
 
-Claude Code fires hooks after every tool use and at session stop.  
-claude-buddy intercepts those hooks, analyzes the output, and renders a character reaction directly to your terminal — outside Claude's context window.
+claude-buddy is a single command-line tool. You append **one line** to your existing `~/.claude/statusline-command.sh`, and Claude Code's native statusline mechanism handles the rest.
 
 ```
-PostToolUse hook (Bash only)        Stop hook
-        │                                │
-  Bash output analysis           transcript.jsonl parse
-  (exit_code + text patterns)    (last assistant message)
-        │                                │
-        └──────────┬─────────────────────┘
-                   ▼
-         ~/.claude-buddy/state.json  (mood, XP, level)
-                   │
-         Terminal → speech bubble via /dev/tty (Unix) or \\.\CON (Windows)
-                   │
-         Status bar → one-line ASCII face via statusLineCommand
+~/.claude/statusline-command.sh
+   ├── (your existing model/git/context lines)
+   └── node /path/to/dist/statusline/status-line.js   ← this is all you add
 ```
+
+The script:
+- Reads (and drops) the JSON Claude Code pipes to statusline scripts
+- Loads companion bones from `~/.claude-buddy/companion.json`
+- Computes a time-based level from `config.createdAt` (1 level per 7 days)
+- Prints the multi-line sprite + info line to stdout
+
+Claude Code's statusline area owns the rendering surface, so there is **no race condition** with TUI redraws — the corruption you see when writing multi-line ASCII via `/dev/tty` is fundamentally avoided.
 
 ---
 
 ## Installation
 
 ```bash
-npm install -g claude-buddy
+git clone <this repo>
+cd claude-buddy
+npm install
+npm run build
 ```
 
-The `postinstall` script automatically runs `claude-buddy install`, which adds the hooks and status line to `~/.claude/settings.json`.
+Then append the renderer to your statusline script:
 
-Restart Claude Code after installation to activate.
+```bash
+echo "node $(pwd)/dist/statusline/status-line.js" >> ~/.claude/statusline-command.sh
+```
+
+Restart Claude Code (or wait for the next statusline refresh) — your buddy appears.
+
+To remove buddy from the statusline, just delete that line from `statusline-command.sh`. The project never modifies any other file outside `~/.claude-buddy/`.
 
 ---
 
@@ -54,61 +57,39 @@ Restart Claude Code after installation to activate.
 
 | Command | Description |
 |---------|-------------|
-| `claude-buddy install` | Add hooks + status line to `~/.claude/settings.json` |
-| `claude-buddy uninstall` | Remove claude-buddy from settings |
-| `claude-buddy status` | Show current buddy state (name, level, XP, mood) |
-| `claude-buddy show` | Display buddy with full sprite in terminal (no Claude session needed) |
-| `claude-buddy reset` | Reset state to defaults |
-| `claude-buddy companion` | Show companion species / rarity / eye / hat / stats |
+| `claude-buddy companion` | Show current companion (species, rarity, stats) |
 | `claude-buddy companion --reroll` | Roll a brand-new random companion |
 | `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Edit companion fields directly |
-| `claude-buddy active on` | Enable always-on full sprite in the status bar |
-| `claude-buddy active off` | Hide buddy from status bar |
-
-Install is **idempotent** — running it multiple times never creates duplicate hooks.
+| `claude-buddy show` | Print the buddy directly to the terminal (preview) |
 
 ---
 
 ## Companion system
 
-On first run, a random companion is rolled from the gacha table and saved to `~/.claude-buddy/companion.json`.  
-Use `--reroll` to get a new one at any time.
+On first run, a random companion is rolled from the gacha table and saved to `~/.claude-buddy/companion.json`. Use `--reroll` to get a new one.
 
-**Rarity distribution:**
+| Rarity | Chance | Stars |
+|--------|--------|-------|
+| Common | 60% | ★ |
+| Uncommon | 25% | ★★ |
+| Rare | 10% | ★★★ |
+| Epic | 4% | ★★★★ |
+| Legendary | 1% | ★★★★★ |
 
-| Rarity | Chance | Stars | Bubble border |
-|--------|--------|-------|---------------|
-| Common | 60% | ★ | `╭─╮` rounded |
-| Uncommon | 25% | ★★ | `╭─╮` rounded |
-| Rare | 10% | ★★★ | `╔═╗` double |
-| Epic | 4% | ★★★★ | `╔★══★╗` double + ★ accents |
-| Legendary | 1% | ★★★★★ | `╔✦══✦╗` double + ✦ accents |
+18 species · 6 eye styles · 8 hats (uncommon+) · 1% shiny chance · 5 stats (DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK).
 
-18 species · 6 eye styles · 8 hats (uncommon+) · 1% shiny chance · 5 stats (DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK)
-
-Shiny companions display a sparkle decoration line (`✦ ✨ ✦ ✨ ✦ ✨ ✦`) below the info line.
+Shiny companions add a sparkle line `✦ ✨ ✦ ✨ ✦` below the info line.
 
 ---
 
-## Reaction system
+## Progression
 
-8 reaction types, each with its own message pool and XP reward:
+Level is **time-based** — no hooks needed:
 
-| Reaction | Trigger | XP | Mood |
-|----------|---------|-----|------|
-| `test_pass` | Test pass patterns in Bash output | +10 | excited |
-| `code_written` | Code written keywords in transcript | +5 | happy |
-| `refactor` | Refactor keywords in transcript | +5 | happy |
-| `explanation` | General explanation in transcript | +3 | neutral |
-| `idle` | No strong signal | +2 | tired |
-| `bash_error` | Non-zero exit code | +1 | worried |
-| `test_fail` | Test failure patterns in Bash output | +1 | sad |
-| `error_mentioned` | Error/bug keywords in transcript | +1 | worried |
+- `level = floor((now - createdAt) / 7 days) + 1`
+- Bar shows progress through the current week (0..1)
 
-Every 100 XP → level up with a special celebration bubble.
-
-**PostToolUse detection priority:** `test_fail` (if fail pattern matches) → `bash_error` (non-zero exit or error field) → `test_pass` → `idle`  
-**Stop detection priority:** `error_mentioned` → `refactor` → `code_written` → `explanation` → `idle`
+Older companions are higher level. No XP grinding, no event tracking, no state file.
 
 ---
 
@@ -116,45 +97,20 @@ Every 100 XP → level up with a special celebration bubble.
 
 | Path | Description |
 |------|-------------|
-| `~/.claude-buddy/config.json` | Stable UUID seed, companion name, creation timestamp |
-| `~/.claude-buddy/companion.json` | Rolled companion bones (species, rarity, eye, hat, stats) |
-| `~/.claude-buddy/state.json` | Session state (mood, XP, level, last reaction message) |
+| `~/.claude-buddy/config.json` | UUID seed, name, creation timestamp |
+| `~/.claude-buddy/companion.json` | Rolled bones (species, rarity, eye, hat, shiny, stats) |
 
-Edit `name` in `config.json` to rename your buddy.  
-Override the directory with `CLAUDE_BUDDY_STATE_DIR` (useful for testing).
-
----
-
-## Platform support
-
-| Platform | Terminal output | Status bar |
-|----------|----------------|------------|
-| macOS | `/dev/tty` | ✓ |
-| Linux | `/dev/tty` | ✓ |
-| Windows | `\\.\CON` (stderr fallback) | ✓ |
-
-**Node.js ≥ 18 required.**
+Edit `name` in `config.json` to rename your buddy.
+Override the directory with `CLAUDE_BUDDY_STATE_DIR` (used by tests).
 
 ---
 
 ## Development
 
 ```bash
-git clone https://github.com/chae-dahee/claude-buddy
-cd claude-buddy
-npm install --ignore-scripts   # skip postinstall during dev
-npm run build                  # tsc → dist/
-npm test                       # 100 unit + integration tests
-
-# Manual PostToolUse hook test
-echo '{"tool_name":"Bash","tool_response":{"output":"5 tests passed","exit_code":0}}' \
-  | CLAUDE_BUDDY_STATE_DIR=/tmp/buddy-test node dist/hooks/post-tool-use.js
-
-# Show buddy directly in terminal
-node bin/claude-buddy.cjs show
-
-# Roll a new random companion
-node bin/claude-buddy.cjs companion --reroll
+npm install
+npm run build       # tsc → dist/
+npm test            # node --test tests/
 ```
 
 ### Project structure
@@ -162,55 +118,33 @@ node bin/claude-buddy.cjs companion --reroll
 ```
 src/
   shared/
-    config.ts       # BuddyConfig (UUID seed, name) — ~/.claude-buddy/config.json
-    companion.ts    # Gacha engine (rollFrom, rollRandom, loadCompanion, storage)
-    types.ts        # Shared TypeScript types
-    state.ts        # XP / level persistence — ~/.claude-buddy/state.json
-    mood.ts         # Reaction detection & REACTION_MAP
-    render.ts       # ASCII sprite rendering
-    tty.ts          # Terminal output (cross-platform /dev/tty)
-    transcript.ts   # JSONL transcript parser
-  hooks/
-    post-tool-use.ts  # PostToolUse hook (Bash reactions)
-    stop.ts           # Stop hook (session-end reactions)
-  statusline/
-    status-line.ts    # One-line status bar for statusLineCommand
+    config.ts        # ~/.claude-buddy/config.json (UUID seed, name, createdAt)
+    companion.ts     # Gacha engine + ~/.claude-buddy/companion.json storage
+    messages.ts      # Random + time-of-day greetings
+    render.ts        # Sprites, hat overlays, progress bar, character composer
+    types.ts         # Shared TypeScript types
   cli/
-    install.ts        # Add hooks to ~/.claude/settings.json
-    uninstall.ts      # Remove hooks
-    status.ts         # Show buddy state
-    show.ts           # Display full sprite in terminal
-    reset.ts          # Reset state to defaults
-    companion.ts      # Show / reroll / edit companion
-    settings.ts       # Settings read/write utilities
-  index.ts            # Public API re-exports
+    companion.ts     # Show / reroll / edit companion
+    show.ts          # Print buddy directly to terminal
+  statusline/
+    status-line.ts   # Renderer entrypoint — appended as one line to statusline-command.sh
+  index.ts           # Public API re-exports
 bin/
-  claude-buddy.cjs    # CJS wrapper — dynamic import() into ESM dist
-scripts/
-  postinstall.cjs     # npm install -g lifecycle hook
-  preuninstall.cjs    # npm uninstall -g lifecycle hook
+  claude-buddy.cjs   # CJS dispatcher
 tests/
-  companion.test.js   # Gacha engine unit tests (hash, PRNG, roll, storage)
-  config.test.js      # Config lifecycle unit tests
-  mood.test.js        # Reaction detection unit tests
-  render.test.js      # ASCII rendering unit tests
-  show.test.js        # CLI show command integration tests
-  state.test.js       # State persistence unit tests
-  transcript.test.js  # JSONL parser unit tests
-  settings.test.js    # Settings manager unit tests
-  integration.test.js # Full hook binary integration tests
-dist/                 # Compiled output (not in git; included in npm tarball)
+  companion.test.js
+  config.test.js
+  messages.test.js
+  render.test.js
 ```
 
 ---
 
-## Uninstall
+## Why no hooks?
 
-```bash
-npm uninstall -g claude-buddy
-```
+Earlier versions of claude-buddy used `PostToolUse` and `Stop` hooks to write a multi-line sprite to `/dev/tty`. That approach **inherently races with Claude Code's TUI redraws**: writing to the terminal at the cursor position fights with the live region's `\033[A`/`\033[J` redraws, corrupting the sprite as the chat scrolls.
 
-The `preuninstall` script automatically removes hooks from `~/.claude/settings.json`.
+The statusline is the only rendering surface Claude Code owns and updates atomically, so injecting buddy there eliminates corruption entirely. Hooks, `/dev/tty`, mood transitions, and reaction systems were all removed in favour of a pure render-only design.
 
 ---
 
