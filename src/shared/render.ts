@@ -1,4 +1,6 @@
-import type { BuddyState, Species, Eye, Hat, Rarity, CompanionBones } from './types.js';
+import type { Species, Eye, Hat, Rarity, CompanionBones } from './types.js';
+import type { BuddyConfig } from './config.js';
+import { pickMessage } from './messages.js';
 
 // ─── Sprite art (4 lines per species, {E} = eye placeholder) ─────────────────
 
@@ -174,133 +176,73 @@ export function renderSprite(bones: CompanionBones): string[] {
   return lines;
 }
 
-/** Compact inline face (eye substituted) for status line use */
+/** Compact inline face (eye substituted) — used by gacha CLI summary */
 export function renderFaceInline(bones: CompanionBones): string {
   return applyEye(FACE_INLINE[bones.species], bones.eye);
 }
 
-// ─── XP bar ──────────────────────────────────────────────────────────────────
+// ─── Progress bar ─────────────────────────────────────────────────────────────
 
-/** Build XP progress bar (10 chars, 100 XP per level) */
-export function xpBar(xp: number): string {
-  const progress = xp % 100;
-  const filled = Math.floor(progress / 10);
+/** 10-cell bar from a 0..1 progress value (clamped) */
+export function progressBar(progress: number): string {
+  const p = Math.max(0, Math.min(1, progress));
+  const filled = Math.floor(p * 10);
   return '█'.repeat(filled) + '░'.repeat(10 - filled);
 }
 
-// ─── Speech bubble ────────────────────────────────────────────────────────────
+// ─── Time-based progression ───────────────────────────────────────────────────
 
-type BorderDef = {
-  tl: string; tr: string; bl: string; br: string;
-  h: string; v: string;
-  accent: string;
-};
+/** One level per 7 days since the buddy was created. */
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-export const RARITY_BORDERS: Record<Rarity, BorderDef> = {
-  common:    { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', accent: '' },
-  uncommon:  { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', accent: '' },
-  rare:      { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║', accent: '' },
-  epic:      { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║', accent: '★' },
-  legendary: { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║', accent: '✦' },
-};
-
-function speechBubble(text: string, rarity: Rarity): string[] {
-  const maxWidth = 40;
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let current = '';
-  for (const word of words) {
-    if ((current + (current ? ' ' : '') + word).length > maxWidth) {
-      if (current) lines.push(current);
-      current = word;
-    } else {
-      current = current ? `${current} ${word}` : word;
-    }
-  }
-  if (current) lines.push(current);
-  const width = Math.max(...lines.map((l) => l.length), 10);
-  const b = RARITY_BORDERS[rarity];
-  const top = b.accent
-    ? `${b.tl}${b.accent}${b.h.repeat(width)}${b.accent}${b.tr}`
-    : `${b.tl}${b.h.repeat(width + 2)}${b.tr}`;
-  const bot = b.accent
-    ? `${b.bl}${b.accent}${b.h.repeat(width)}${b.accent}${b.br}`
-    : `${b.bl}${b.h.repeat(width + 2)}${b.br}`;
-  return [
-    top,
-    ...lines.map((l) => `${b.v} ${l.padEnd(width)} ${b.v}`),
-    bot,
-  ];
+export interface Progression {
+  /** 1-indexed level (1 at creation, +1 each WEEK_MS) */
+  level: number;
+  /** Progress through the current level, 0..1 */
+  progress: number;
 }
 
-/** Full speech bubble + sprite rendered to terminal string */
-export function renderSpeechBubble(
-  state: BuddyState,
-  message: string,
-  bones: CompanionBones,
-  companionName?: string,
-): string {
-  const name  = companionName ?? state.name;
-  const bar   = xpBar(state.xp);
-  const stars = RARITY_STARS[bones.rarity];
-  const info  = `${name} Lv.${state.level} [${bar}] ${state.xp % 100}/100 XP ${stars}`;
+export function progressionFromAge(createdAt: number, now: number = Date.now()): Progression {
+  const elapsed = Math.max(0, now - createdAt);
+  return {
+    level: Math.floor(elapsed / WEEK_MS) + 1,
+    progress: (elapsed % WEEK_MS) / WEEK_MS,
+  };
+}
 
-  const parts: string[] = [
-    ...speechBubble(message, bones.rarity),
-    '    \\',
-    ...renderSprite(bones),
-    info,
-  ];
+// ─── Composed character render ────────────────────────────────────────────────
 
-  if (bones.shiny) parts.push('  ✦ ✨ ✦ ✨ ✦ ✨ ✦');
-
-  return parts.join('\n');
+export interface CharacterRenderOptions {
+  /** Override "now" for deterministic tests */
+  now?: Date;
+  /** Override Math.random — pickMessage uses this */
+  rng?: () => number;
+  /** When false, suppress the random one-liner (used by `claude-buddy show`) */
+  withMessage?: boolean;
 }
 
 /**
- * Character-focused multi-line render for the scrollback (`/dev/tty`) display.
- * Sprite is the visual centerpiece; name/level/XP and reaction message sit on a
- * single info line below it. Unlike `renderSpeechBubble`, no bubble border —
- * the user explicitly does not want speech-bubble framing here.
+ * Compose the full character display: sprite (+ hat), info line, optional
+ * shiny sparkle line. Returns lines so callers can join with '\n' or pipe to
+ * stdout as needed. Shared by the statusline renderer and the `show` CLI.
  */
-export function renderFullSprite(
-  state: BuddyState,
-  message: string,
+export function renderCharacter(
   bones: CompanionBones,
-  companionName?: string,
-): string {
-  const name  = companionName ?? state.name;
-  const bar   = xpBar(state.xp);
+  config: BuddyConfig,
+  opts: CharacterRenderOptions = {},
+): string[] {
+  const now = opts.now ?? new Date();
+  const { level, progress } = progressionFromAge(config.createdAt, now.getTime());
+
   const stars = RARITY_STARS[bones.rarity];
-  const info  = `${name} Lv.${state.level} [${bar}] ${stars} · ${message}`;
+  const bar   = progressBar(progress);
 
-  const parts: string[] = [
-    ...renderSprite(bones),
-    info,
-  ];
+  const head = `${config.name} Lv.${level} [${bar}] ${stars}`;
+  const info = opts.withMessage === false
+    ? head
+    : `${head} · ${pickMessage(now, opts.rng)}`;
 
-  if (bones.shiny) parts.push('  ✦ ✨ ✦ ✨ ✦ ✨ ✦');
-
-  return parts.join('\n');
-}
-
-/** One-line status for statusLineCommand */
-export function renderStatusLine(
-  state: BuddyState,
-  bones: CompanionBones,
-  companionName?: string,
-): string {
-  const name = companionName ?? state.name;
-  const face = renderFaceInline(bones);
-  const bar  = xpBar(state.xp);
-  return `${face} ${name} Lv.${state.level} [${bar}]`;
-}
-
-/** Level-up celebration box */
-export function renderLevelUp(state: BuddyState): string {
-  return [
-    '╔══════════════════════════╗',
-    `║  ✨ LEVEL UP! Now Lv.${state.level} ✨  ║`,
-    '╚══════════════════════════╝',
-  ].join('\n');
+  const lines = [...renderSprite(bones), info];
+  if (bones.shiny) lines.push('  ✦ ✨ ✦ ✨ ✦');
+  return lines;
 }
