@@ -10,7 +10,6 @@ const [, , command, ...args] = process.argv;
 
 async function main() {
   function distUrl(mod) {
-    // Convert to file:// URL so ESM import() resolves correctly cross-platform
     return 'file://' + path.join(distDir, mod).replace(/\\/g, '/');
   }
 
@@ -24,21 +23,6 @@ async function main() {
   }
 
   switch (command) {
-    case 'install': {
-      const { runInstall } = await load('cli/install.js');
-      runInstall({ silent: args.includes('--silent') });
-      break;
-    }
-    case 'uninstall': {
-      const { runUninstall } = await load('cli/uninstall.js');
-      runUninstall({ silent: args.includes('--silent') });
-      break;
-    }
-    case 'reset': {
-      const { runReset } = await load('cli/reset.js');
-      runReset();
-      break;
-    }
     case 'companion': {
       const { runCompanion } = await load('cli/companion.js');
       runCompanion(args);
@@ -49,31 +33,24 @@ async function main() {
       runShow();
       break;
     }
-    case 'active': {
-      const { runActive } = await load('cli/active.js');
-      runActive(args);
-      break;
-    }
-    case 'sprite': {
-      const { runSprite } = await load('cli/sprite.js');
-      runSprite(args);
-      break;
-    }
     default: {
-      console.log(`claude-buddy — terminal companion
+      const renderJs = path.join(distDir, 'statusline', 'status-line.js');
+      console.log(`claude-buddy — terminal companion (statusline-only)
 
 Usage:
-  claude-buddy install          Add hooks & status line to ~/.claude/settings.json
-  claude-buddy uninstall        Remove buddy configuration
-  claude-buddy show             Show buddy with full sprite in terminal
-  claude-buddy reset            Reset buddy state to defaults
-  claude-buddy companion        Show companion species/rarity/eye/hat/stats
-  claude-buddy companion --reroll
-                                Roll a brand-new random companion
+  claude-buddy companion                            Show current companion
+  claude-buddy companion --reroll                   Roll a new random companion
   claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown
-                                Directly edit companion fields
-  claude-buddy active on|off    Toggle compact one-line status (status bar)
-  claude-buddy sprite on|off    Toggle full character sprite in scrollback on Stop
+                                                    Edit companion fields directly
+  claude-buddy show                                 Print buddy directly to terminal
+
+Integration:
+  Append this single line to your ~/.claude/statusline-command.sh:
+
+      node ${renderJs}
+
+  The script reads (and drops) Claude Code's statusline JSON on stdin and
+  prints a multi-line ASCII character. It never modifies settings.json.
 `);
       if (command) process.exit(1);
       break;
