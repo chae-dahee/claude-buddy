@@ -2,9 +2,27 @@
   "name": "claude-buddy",
   "version": "0.1.0",
   "description": "A terminal buddy character for Claude Code — render-only ASCII companion injected into your statusline. Zero tokens, no hooks.",
-  "keywords": ["claude", "claude-code", "terminal", "ascii", "statusline", "buddy"],
-  "homepage": "https://github.com/yourusername/claude-buddy",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "terminal",
+    "ascii",
+    "statusline",
+    "buddy"
+  ],
+  "homepage": "https://github.com/chae-dahee/claude-buddy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chae-dahee/claude-buddy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chae-dahee/claude-buddy/issues"
+  },
+  "author": "dahdaradanadat <cdh010126r@gmail.com>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
