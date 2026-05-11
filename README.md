@@ -127,6 +127,19 @@ npm run build       # tsc → dist/
 npm test            # node --test tests/
 ```
 
+### Release
+
+태그를 push하면 GitHub Actions가 자동으로 npm에 publish합니다.
+
+```bash
+npm version patch   # 또는 minor / major
+git push --follow-tags
+```
+
+초기 설정 (1회):
+1. [npm Access Tokens](https://www.npmjs.com/settings/~/tokens) 에서 **Granular Access Token** 발급 (publish 권한)
+2. GitHub repo → Settings → Secrets → `NPM_TOKEN` 으로 등록
+
 ### Project structure
 
 ```
