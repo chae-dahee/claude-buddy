@@ -19,7 +19,7 @@ claude-buddy is a single command-line tool. You append **one line** to your exis
 ```
 ~/.claude/statusline-command.sh
    ├── (your existing model/git/context lines)
-   └── node /path/to/dist/statusline/status-line.js   ← this is all you add
+   └── claude-buddy statusline   ← this is all you add
 ```
 
 The script:
@@ -35,21 +35,32 @@ Claude Code's statusline area owns the rendering surface, so there is **no race 
 ## Installation
 
 ```bash
-git clone <this repo>
+npm install -g claude-buddy
+claude-buddy setup
+```
+
+`setup`이 `~/.claude/statusline-command.sh`에 자동으로 한 줄을 추가합니다. Claude Code를 재시작하면 버디가 나타납니다.
+
+제거할 때는:
+
+```bash
+claude-buddy setup --uninstall
+```
+
+### From source
+
+```bash
+git clone https://github.com/chae-dahee/claude-buddy.git
 cd claude-buddy
 npm install
 npm run build
 ```
 
-Then append the renderer to your statusline script:
+빌드 후 수동으로 statusline 스크립트에 추가:
 
 ```bash
-echo "node $(pwd)/dist/statusline/status-line.js" >> ~/.claude/statusline-command.sh
+echo "claude-buddy statusline" >> ~/.claude/statusline-command.sh
 ```
-
-Restart Claude Code (or wait for the next statusline refresh) — your buddy appears.
-
-To remove buddy from the statusline, just delete that line from `statusline-command.sh`. The project never modifies any other file outside `~/.claude-buddy/`.
 
 ---
 
@@ -57,10 +68,13 @@ To remove buddy from the statusline, just delete that line from `statusline-comm
 
 | Command | Description |
 |---------|-------------|
-| `claude-buddy companion` | Show current companion (species, rarity, stats) |
-| `claude-buddy companion --reroll` | Roll a brand-new random companion |
-| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Edit companion fields directly |
-| `claude-buddy show` | Print the buddy directly to the terminal (preview) |
+| `claude-buddy setup` | `~/.claude/statusline-command.sh`에 자동 설치 |
+| `claude-buddy setup --uninstall` | statusline에서 제거 |
+| `claude-buddy statusline` | statusline 렌더러 실행 (statusline-command.sh에서 호출) |
+| `claude-buddy companion` | 현재 컴패니언 정보 출력 (종족, 레어도, 스탯) |
+| `claude-buddy companion --reroll` | 새 컴패니언 가챠 |
+| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | 필드 직접 수정 |
+| `claude-buddy show` | 터미널에 버디 직접 출력 (미리보기) |
 
 ---
 
@@ -125,6 +139,7 @@ src/
     types.ts         # Shared TypeScript types
   cli/
     companion.ts     # Show / reroll / edit companion
+    setup.ts         # statusline-command.sh 자동 설치/제거
     show.ts          # Print buddy directly to terminal
   statusline/
     status-line.ts   # Renderer entrypoint — appended as one line to statusline-command.sh
