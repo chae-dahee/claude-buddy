@@ -1,6 +1,7 @@
 # claude-buddy
 
 An ASCII buddy that lives in your Claude Code statusline. Rolled from a gacha table.
+
 No hooks · no `/dev/tty` writes · no settings.json modification · **zero tokens consumed**
 
 ```
@@ -36,7 +37,9 @@ claude-buddy setup
 ```
 
 `setup` appends one line to `statusline-command.sh` (on) and rolls your first companion automatically.
+
 Don't like it? Run `claude-buddy companion --reroll`.
+
 Restart Claude Code — your buddy appears.
 
 To remove (off):
@@ -65,6 +68,7 @@ claude-buddy setup --uninstall
 ## Companion System
 
 Rolled automatically on `setup` and saved to `~/.claude-buddy/companion.json`.
+
 Use `--reroll` to get a new one anytime.
 
 | Rarity | Chance | Stars | Color |
@@ -94,6 +98,7 @@ Lv.4   after 21 days
 ```
 
 The progress bar `[████░░░░░░]` shows how far through the current level you are.
+
 The fuller it is, the closer to the next level.
 
 ---
@@ -106,6 +111,7 @@ The fuller it is, the closer to the next level.
 | `~/.claude-buddy/companion.json` | Rolled data (species, rarity, eye, hat, shiny, stats) |
 
 Edit `name` in `config.json` to rename your buddy.
+
 Override the directory with `CLAUDE_BUDDY_STATE_DIR`.
 
 ---
