@@ -139,6 +139,7 @@ src/
     types.ts         # Shared TypeScript types
   cli/
     companion.ts     # Show / reroll / edit companion
+    setup.ts         # statusline-command.sh 자동 설치/제거
     show.ts          # Print buddy directly to terminal
   statusline/
     status-line.ts   # Renderer entrypoint — appended as one line to statusline-command.sh
