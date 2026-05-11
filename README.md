@@ -1,6 +1,7 @@
 # claude-buddy
 
-A terminal companion for Claude Code — a random-gacha ASCII character that lives inside **your existing statusline**. No hooks, no `/dev/tty` writes, no settings.json modification. **Zero tokens consumed.**
+An ASCII buddy that lives in your Claude Code statusline. Rolled from a gacha table.
+No hooks · no `/dev/tty` writes · no settings.json modification · **zero tokens consumed**
 
 ```
    /\_/\
@@ -10,21 +11,20 @@ A terminal companion for Claude Code — a random-gacha ASCII character that liv
 Buddy Lv.3 [██████░░░░] ★★★ · Keep shipping!
 ```
 
-한국어 문서: [README.ko.md](README.ko.md)
+한국어: [README.ko.md](README.ko.md)
 
 ---
 
 ## How it works
 
-claude-buddy appends **one line** to your existing `~/.claude/statusline-command.sh`. Claude Code's native statusline mechanism handles the rest — no background process, no hooks.
+Adding one line to `~/.claude/statusline-command.sh` is all it takes.
+Claude Code's statusline handles the rendering from there.
 
 ```
 ~/.claude/statusline-command.sh
-   ├── (your existing model/git/context lines)
-   └── claude-buddy statusline   ← this is all you add
+   ├── (your existing lines)
+   └── claude-buddy statusline
 ```
-
-Claude Code's statusline area owns the rendering surface, so there is **no race condition** with TUI redraws. The corruption you see when writing multi-line ASCII via `/dev/tty` is fundamentally avoided.
 
 ---
 
@@ -35,9 +35,11 @@ npm install -g claude-buddy-statusline
 claude-buddy setup
 ```
 
-`setup` automatically appends one line to `~/.claude/statusline-command.sh`. Restart Claude Code — your buddy appears.
+`setup` appends one line to `statusline-command.sh` (on) and rolls your first companion automatically.
+Don't like it? Run `claude-buddy companion --reroll`.
+Restart Claude Code — your buddy appears.
 
-To remove:
+To remove (off):
 
 ```bash
 claude-buddy setup --uninstall
@@ -47,45 +49,52 @@ claude-buddy setup --uninstall
 
 ---
 
-## CLI Commands
+## Commands
 
 | Command | Description |
 |---------|-------------|
-| `claude-buddy setup` | Install into `~/.claude/statusline-command.sh` |
+| `claude-buddy setup` | Install into statusline |
 | `claude-buddy setup --uninstall` | Remove from statusline |
-| `claude-buddy companion` | Show current companion (species, rarity, stats) |
-| `claude-buddy companion --reroll` | Roll a brand-new random companion |
-| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Edit companion fields directly |
+| `claude-buddy companion` | Show current companion info |
+| `claude-buddy companion --reroll` | Roll a new companion |
+| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Set fields directly |
 | `claude-buddy show` | Print buddy to terminal (preview) |
 
 ---
 
 ## Companion System
 
-On first run, a random companion is rolled from the gacha table and saved to `~/.claude-buddy/companion.json`. Use `--reroll` to get a new one.
+Rolled automatically on `setup` and saved to `~/.claude-buddy/companion.json`.
+Use `--reroll` to get a new one anytime.
 
-| Rarity | Chance | Stars |
-|--------|--------|-------|
-| Common | 60% | ★ |
-| Uncommon | 25% | ★★ |
-| Rare | 10% | ★★★ |
-| Epic | 4% | ★★★★ |
-| Legendary | 1% | ★★★★★ |
+| Rarity | Chance | Stars | Color |
+|--------|--------|-------|-------|
+| Common | 60% | ★ | default |
+| Uncommon | 25% | ★★ | green |
+| Rare | 10% | ★★★ | blue |
+| Epic | 4% | ★★★★ | purple |
+| Legendary | 1% | ★★★★★ | gold |
 
 18 species · 6 eye styles · 8 hats (Uncommon+) · 1% shiny chance · 5 stats (DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK)
 
-Shiny companions show a sparkle line `✦ ✨ ✦ ✨ ✦` below the info bar.
+Shiny buddies show a sparkle line `✦ ✨ ✦ ✨ ✦` below the info bar.
 
 ---
 
-## Progression
+## Level
 
-Level is **time-based** — no hooks or event tracking needed:
+Levels up every 7 days from the day you ran `setup`. No cap.
 
-- `level = floor((now - createdAt) / 7 days) + 1`
-- The progress bar shows how far through the current week your buddy is
+```
+Lv.1   day of install
+Lv.2   after 7 days
+Lv.3   after 14 days
+Lv.4   after 21 days
+...
+```
 
-Older companions are higher level. No XP grinding, no state files beyond creation date.
+The progress bar `[████░░░░░░]` shows how far through the current level you are.
+The fuller it is, the closer to the next level.
 
 ---
 
@@ -93,19 +102,22 @@ Older companions are higher level. No XP grinding, no state files beyond creatio
 
 | Path | Description |
 |------|-------------|
-| `~/.claude-buddy/config.json` | UUID seed, display name, creation timestamp |
-| `~/.claude-buddy/companion.json` | Rolled bones (species, rarity, eye, hat, shiny, stats) |
+| `~/.claude-buddy/config.json` | UUID seed, name, creation timestamp |
+| `~/.claude-buddy/companion.json` | Rolled data (species, rarity, eye, hat, shiny, stats) |
 
-Edit `name` in `config.json` to rename your buddy.  
-Override the directory with the `CLAUDE_BUDDY_STATE_DIR` environment variable.
+Edit `name` in `config.json` to rename your buddy.
+Override the directory with `CLAUDE_BUDDY_STATE_DIR`.
 
 ---
 
 ## Why no hooks?
 
-Earlier versions used `PostToolUse` and `Stop` hooks to write a multi-line sprite to `/dev/tty`. That approach **inherently races with Claude Code's TUI redraws**: writing to the terminal at the cursor position fights with the live region's `\033[A`/`\033[J` redraws, corrupting the sprite as the chat scrolls.
+Earlier versions used `PostToolUse` and `Stop` hooks to write sprites directly to `/dev/tty`.
+The problem: every time the chat scrolls, Claude Code redraws part of the screen.
+If a `/dev/tty` write lands at the same moment, the sprite gets corrupted.
 
-The statusline is the only rendering surface Claude Code owns and updates atomically, so injecting buddy there eliminates corruption entirely. Hooks, `/dev/tty`, mood transitions, and reaction systems were all removed in favour of a pure render-only design.
+The statusline is an area Claude Code controls exclusively, so there's no overlap.
+Hooks, `/dev/tty`, mood transitions, and reaction systems were all removed in favour of a pure render-only approach.
 
 ---
 
