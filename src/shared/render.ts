@@ -166,7 +166,7 @@ export const RARITY_COLORS: Record<Rarity, string> = {
   common:    '',
   uncommon:  '\x1b[32m',   // green
   rare:      '\x1b[94m',   // bright blue
-  epic:      '\x1b[95m',   // bright magenta (purple)
+  epic:      '\x1b[38;5;135m', // purple
   legendary: '\x1b[93m',   // bright yellow (gold)
 };
 
