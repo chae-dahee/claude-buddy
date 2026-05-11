@@ -19,7 +19,7 @@ claude-buddy is a single command-line tool. You append **one line** to your exis
 ```
 ~/.claude/statusline-command.sh
    ├── (your existing model/git/context lines)
-   └── node /path/to/dist/statusline/status-line.js   ← this is all you add
+   └── claude-buddy statusline   ← this is all you add
 ```
 
 The script:
@@ -35,21 +35,32 @@ Claude Code's statusline area owns the rendering surface, so there is **no race 
 ## Installation
 
 ```bash
-git clone <this repo>
+npm install -g claude-buddy
+claude-buddy setup
+```
+
+`setup`이 `~/.claude/statusline-command.sh`에 자동으로 한 줄을 추가합니다. Claude Code를 재시작하면 버디가 나타납니다.
+
+제거할 때는:
+
+```bash
+claude-buddy setup --uninstall
+```
+
+### From source
+
+```bash
+git clone https://github.com/chae-dahee/claude-buddy.git
 cd claude-buddy
 npm install
 npm run build
 ```
 
-Then append the renderer to your statusline script:
+빌드 후 수동으로 statusline 스크립트에 추가:
 
 ```bash
-echo "node $(pwd)/dist/statusline/status-line.js" >> ~/.claude/statusline-command.sh
+echo "claude-buddy statusline" >> ~/.claude/statusline-command.sh
 ```
-
-Restart Claude Code (or wait for the next statusline refresh) — your buddy appears.
-
-To remove buddy from the statusline, just delete that line from `statusline-command.sh`. The project never modifies any other file outside `~/.claude-buddy/`.
 
 ---
 
