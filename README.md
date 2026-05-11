@@ -68,10 +68,13 @@ echo "claude-buddy statusline" >> ~/.claude/statusline-command.sh
 
 | Command | Description |
 |---------|-------------|
-| `claude-buddy companion` | Show current companion (species, rarity, stats) |
-| `claude-buddy companion --reroll` | Roll a brand-new random companion |
-| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Edit companion fields directly |
-| `claude-buddy show` | Print the buddy directly to the terminal (preview) |
+| `claude-buddy setup` | `~/.claude/statusline-command.sh`에 자동 설치 |
+| `claude-buddy setup --uninstall` | statusline에서 제거 |
+| `claude-buddy statusline` | statusline 렌더러 실행 (statusline-command.sh에서 호출) |
+| `claude-buddy companion` | 현재 컴패니언 정보 출력 (종족, 레어도, 스탯) |
+| `claude-buddy companion --reroll` | 새 컴패니언 가챠 |
+| `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | 필드 직접 수정 |
+| `claude-buddy show` | 터미널에 버디 직접 출력 (미리보기) |
 
 ---
 
