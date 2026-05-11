@@ -38,16 +38,12 @@ tests/
 
 ## Release
 
-Pushing a `v*` tag triggers GitHub Actions to build, test, and publish to npm automatically.
+Releases are managed by the project owner. Pushing a `v*` tag triggers GitHub Actions to build, test, and publish to npm automatically.
 
 ```bash
 npm version patch   # or minor / major
 git push --follow-tags
 ```
-
-**First-time setup** (one-time):
-1. Generate a [Granular Access Token](https://www.npmjs.com/settings/~/tokens) on npm with **Read and write** scope for all packages
-2. Add it as `NPM_TOKEN` in GitHub repo → Settings → Secrets → Actions
 
 ## Contributing
 
