@@ -32,7 +32,7 @@ Claude Code's statusline handles the rendering from there.
 ## Installation
 
 ```bash
-npm install -g claude-buddy-statusline
+npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 

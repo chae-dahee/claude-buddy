@@ -29,7 +29,7 @@ English: [README.md](README.md)
 ## 설치
 
 ```bash
-npm install -g claude-buddy-statusline
+npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 
