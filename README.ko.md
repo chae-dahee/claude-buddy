@@ -16,12 +16,12 @@ English: [README.md](README.md)
 
 ## 어떻게 동작하나요
 
-`~/.claude/statusline-command.sh`에 한 줄을 추가하는 게 끝입니다.
+`~/.claude/statusline.sh`에 한 줄을 추가하는 게 끝입니다.
 
 나머지는 Claude Code의 statusline이 알아서 렌더링해줍니다.
 
 ```
-~/.claude/statusline-command.sh
+~/.claude/statusline.sh
    ├── (기존 라인들)
    └── claude-buddy statusline
 ```
@@ -33,7 +33,7 @@ npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 
-`setup`이 `statusline-command.sh`에 자동으로 한 줄 추가해줍니다. (on)
+`setup`이 `statusline.sh`에 자동으로 한 줄 추가해줍니다. (on)
 Claude Code를 재시작하면 buddy가 나타납니다.
 
 Claude Code StatusLine 에서 표시되는 buddy를 제거하려면 (off):

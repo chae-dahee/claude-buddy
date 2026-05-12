@@ -18,11 +18,11 @@ Buddy Lv.3 [██████░░░░] ★★★ · Keep shipping!
 
 ## How it works
 
-Adding one line to `~/.claude/statusline-command.sh` is all it takes.
+Adding one line to `~/.claude/statusline.sh` is all it takes.
 Claude Code's statusline handles the rendering from there.
 
 ```
-~/.claude/statusline-command.sh
+~/.claude/statusline.sh
    ├── (your existing lines)
    └── claude-buddy statusline
 ```
@@ -36,7 +36,7 @@ npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 
-`setup` appends one line to `statusline-command.sh` (on) and rolls your first companion automatically.
+`setup` appends one line to `statusline.sh` (on) and rolls your first companion automatically.
 
 Don't like it? Run `claude-buddy companion --reroll`.
 

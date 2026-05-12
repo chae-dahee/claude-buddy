@@ -10,7 +10,7 @@ const SHEBANG = '#!/usr/bin/env bash';
 
 function statuslineScriptPath(): string {
   const claudeDir = process.env['CLAUDE_CONFIG_DIR'] ?? path.join(os.homedir(), '.claude');
-  return path.join(claudeDir, 'statusline-command.sh');
+  return path.join(claudeDir, 'statusline.sh');
 }
 
 function runInstall(scriptPath: string): void {
@@ -32,7 +32,7 @@ function runInstall(scriptPath: string): void {
 
 function runUninstall(scriptPath: string): void {
   if (!fs.existsSync(scriptPath)) {
-    console.log('Nothing to uninstall — statusline-command.sh not found.');
+    console.log('Nothing to uninstall — statusline.sh not found.');
     return;
   }
   const lines = fs.readFileSync(scriptPath, 'utf-8').split('\n');
