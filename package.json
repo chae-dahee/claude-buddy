@@ -13,7 +13,7 @@
   "homepage": "https://github.com/chae-dahee/claude-buddy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chae-dahee/claude-buddy.git"
+    "url": "https://github.com/chae-dahee/claude-buddy"
   },
   "bugs": {
     "url": "https://github.com/chae-dahee/claude-buddy/issues"

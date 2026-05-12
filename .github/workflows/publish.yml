@@ -5,13 +5,13 @@ on:
     tags:
       - "v*"
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   publish:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -26,5 +26,8 @@ jobs:
       - run: npm run build
 
       - run: npm test
+
+      - name: Remove setup-node generated .npmrc
+        run: rm -f .npmrc
 
       - run: npm publish --access public --provenance
