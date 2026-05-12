@@ -5,7 +5,7 @@ import { loadCompanion } from '../shared/companion.js';
 import { loadConfig } from '../shared/config.js';
 import { RARITY_STARS, renderFaceInline } from '../shared/render.js';
 
-const STATUSLINE_MARKER = 'claude-buddy statusline';
+const STATUSLINE_MARKER = 'command -v claude-buddy &>/dev/null && claude-buddy statusline';
 const SHEBANG = '#!/usr/bin/env bash';
 
 function statuslineScriptPath(): string {

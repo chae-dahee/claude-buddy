@@ -60,7 +60,7 @@ Integration (auto):
 Integration (manual):
   Append this single line to your ~/.claude/statusline.sh:
 
-      claude-buddy statusline
+      command -v claude-buddy &>/dev/null && claude-buddy statusline
 `);
       if (command) process.exit(1);
       break;
