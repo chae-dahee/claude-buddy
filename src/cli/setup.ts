@@ -21,13 +21,14 @@ function settingsJsonPath(): string {
   return path.join(claudeConfigDir(), 'settings.json');
 }
 
-function readSettings(): Record<string, unknown> {
+function readSettings(): Record<string, unknown> | null {
   const p = settingsJsonPath();
   if (!fs.existsSync(p)) return {};
   try {
     return JSON.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown>;
   } catch {
-    return {};
+    console.warn('  ⚠ Could not parse settings.json — skipping statusLine injection.');
+    return null;
   }
 }
 
@@ -54,6 +55,7 @@ function runInstall(scriptPath: string): void {
 
 function injectSettings(scriptPath: string, layout: 'sequential' | 'side-by-side'): void {
   const settings = readSettings();
+  if (settings === null) return;
   const existing = settings['statusLine'] as Record<string, unknown> | undefined;
   const buddyCmd = `bash ${scriptPath}`;
 
@@ -116,6 +118,7 @@ function runUninstall(scriptPath: string): void {
 
 function removeSettingsIfOurs(scriptPath: string, originalCmd: string | null): void {
   const settings = readSettings();
+  if (settings === null) return;
   const existing = settings['statusLine'] as Record<string, unknown> | undefined;
   if (existing?.['command'] !== `bash ${scriptPath}`) return;
 
