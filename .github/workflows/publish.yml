@@ -21,11 +21,6 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Upgrade npm
-        run: |
-          corepack enable
-          corepack prepare npm@11 --activate
-
       - run: npm ci
 
       - run: npm run build
