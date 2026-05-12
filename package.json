@@ -21,7 +21,8 @@
   "author": "dahdaradanadat <cdh010126r@gmail.com>",
   "license": "MIT",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "type": "module",
   "main": "dist/index.js",
