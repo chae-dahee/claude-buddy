@@ -31,7 +31,7 @@ Claude Code의 statusline 영역은 렌더링 표면을 독점적으로 소유�
 ## 설치
 
 ```bash
-npm install -g claude-buddy-statusline
+npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 

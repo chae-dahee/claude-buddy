@@ -31,7 +31,7 @@ Claude Code's statusline area owns the rendering surface, so there is **no race 
 ## Installation
 
 ```bash
-npm install -g claude-buddy-statusline
+npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 
