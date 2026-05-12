@@ -13,7 +13,7 @@
   "homepage": "https://github.com/chae-dahee/claude-buddy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chae-dahee/claude-buddy.git"
+    "url": "https://github.com/chae-dahee/claude-buddy"
   },
   "bugs": {
     "url": "https://github.com/chae-dahee/claude-buddy/issues"
@@ -21,7 +21,8 @@
   "author": "dahdaradanadat <cdh010126r@gmail.com>",
   "license": "MIT",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "type": "module",
   "main": "dist/index.js",
