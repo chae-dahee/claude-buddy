@@ -2,7 +2,7 @@
 
 Claude Code statusline에 사는 ASCII buddy입니다. 가챠로 뽑힙니다.
 
-훅 없음 · `/dev/tty` 직접 쓰기 없음 · settings.json 수정 없음 · **토큰 소모 없음**
+훅 없음 · `/dev/tty` 직접 쓰기 없음 · **토큰 소모 없음**
 
 ```
    /\_/\
@@ -33,7 +33,7 @@ npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 
-`setup`이 `statusline.sh`에 자동으로 한 줄 추가해줍니다. (on)
+`setup`이 `statusline.sh`에 buddy 라인을 추가하고, `settings.json`의 `statusLine`도 자동으로 설정합니다.
 Claude Code를 재시작하면 buddy가 나타납니다.
 
 Claude Code StatusLine 에서 표시되는 buddy를 제거하려면 (off):

@@ -6,11 +6,33 @@ import { loadConfig } from '../shared/config.js';
 import { RARITY_STARS, renderFaceInline } from '../shared/render.js';
 
 const STATUSLINE_MARKER = 'command -v claude-buddy &>/dev/null && claude-buddy statusline';
+const MIGRATION_PREFIX = '# claude-buddy:migrated=';
 const SHEBANG = '#!/usr/bin/env bash';
 
+function claudeConfigDir(): string {
+  return process.env['CLAUDE_CONFIG_DIR'] ?? path.join(os.homedir(), '.claude');
+}
+
 function statuslineScriptPath(): string {
-  const claudeDir = process.env['CLAUDE_CONFIG_DIR'] ?? path.join(os.homedir(), '.claude');
-  return path.join(claudeDir, 'statusline.sh');
+  return path.join(claudeConfigDir(), 'statusline.sh');
+}
+
+function settingsJsonPath(): string {
+  return path.join(claudeConfigDir(), 'settings.json');
+}
+
+function readSettings(): Record<string, unknown> {
+  const p = settingsJsonPath();
+  if (!fs.existsSync(p)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function writeSettings(settings: Record<string, unknown>): void {
+  fs.writeFileSync(settingsJsonPath(), JSON.stringify(settings, null, 2) + '\n', 'utf-8');
 }
 
 function runInstall(scriptPath: string): void {
@@ -30,15 +52,78 @@ function runInstall(scriptPath: string): void {
   }
 }
 
+function injectSettings(scriptPath: string): void {
+  const settings = readSettings();
+  const existing = settings['statusLine'] as Record<string, unknown> | undefined;
+  const buddyCmd = `bash ${scriptPath}`;
+
+  if (existing?.['command'] === buddyCmd) {
+    console.log('✓ settings.json statusLine already configured.');
+    return;
+  }
+
+  if (existing?.['command']) {
+    // User has a different statusLine command — migrate it into statusline.sh
+    const theirCmd = existing['command'] as string;
+    const content = fs.readFileSync(scriptPath, 'utf-8');
+    if (!content.includes(MIGRATION_PREFIX)) {
+      const lines = content.split('\n');
+      const insertAt = lines[0]?.startsWith('#!') ? 1 : 0;
+      lines.splice(insertAt, 0, `${MIGRATION_PREFIX}${theirCmd}`, theirCmd);
+      fs.writeFileSync(scriptPath, lines.join('\n'), 'utf-8');
+    }
+    settings['statusLine'] = { type: 'command', command: buddyCmd };
+    writeSettings(settings);
+    console.log('✓ Migrated existing statusLine command into statusline.sh.');
+    console.log('✓ settings.json updated.');
+    return;
+  }
+
+  settings['statusLine'] = { type: 'command', command: buddyCmd };
+  writeSettings(settings);
+  console.log('✓ settings.json statusLine configured.');
+}
+
 function runUninstall(scriptPath: string): void {
   if (!fs.existsSync(scriptPath)) {
     console.log('Nothing to uninstall — statusline.sh not found.');
+    removeSettingsIfOurs(scriptPath, null);
     return;
   }
+
   const lines = fs.readFileSync(scriptPath, 'utf-8').split('\n');
-  const filtered = lines.filter((l) => !l.includes('claude-buddy'));
+
+  const migrationLine = lines.find((l) => l.startsWith(MIGRATION_PREFIX));
+  const originalCmd = migrationLine ? migrationLine.slice(MIGRATION_PREFIX.length) : null;
+
+  const filtered = lines.filter(
+    (l) => !l.includes('claude-buddy') && !(originalCmd && l === originalCmd),
+  );
   fs.writeFileSync(scriptPath, filtered.join('\n'), 'utf-8');
   console.log(`✓ Removed from ${scriptPath}`);
+
+  removeSettingsIfOurs(scriptPath, originalCmd);
+}
+
+function removeSettingsIfOurs(scriptPath: string, originalCmd: string | null): void {
+  const settings = readSettings();
+  const existing = settings['statusLine'] as Record<string, unknown> | undefined;
+  if (existing?.['command'] !== `bash ${scriptPath}`) return;
+
+  if (originalCmd) {
+    settings['statusLine'] = { ...existing, command: originalCmd };
+    writeSettings(settings);
+    console.log('✓ settings.json statusLine restored to original command.');
+    return;
+  }
+
+  const content = fs.existsSync(scriptPath) ? fs.readFileSync(scriptPath, 'utf-8') : '';
+  const hasContent = content.split('\n').some((l) => l.trim() && !l.startsWith('#'));
+  if (!hasContent) {
+    delete settings['statusLine'];
+    writeSettings(settings);
+    console.log('✓ settings.json statusLine removed.');
+  }
 }
 
 function showFirstRun(): void {
@@ -60,13 +145,9 @@ export function runSetup(args: string[]): void {
   }
 
   runInstall(scriptPath);
+  injectSettings(scriptPath);
 
-  console.log(`
-  Restart Claude Code (or wait for the next statusline tick) to see your buddy.
-
-  Note: make sure ~/.claude/settings.json has:
-    "statusLine": { "command": "${scriptPath}" }
-`);
+  console.log('\n  Restart Claude Code to see your buddy.');
 
   showFirstRun();
 }

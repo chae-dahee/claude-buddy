@@ -2,7 +2,7 @@
 
 An ASCII buddy that lives in your Claude Code statusline. Rolled from a gacha table.
 
-No hooks · no `/dev/tty` writes · no settings.json modification · **zero tokens consumed**
+No hooks · no `/dev/tty` writes · **zero tokens consumed**
 
 ```
    /\_/\
@@ -36,7 +36,7 @@ npm i -g claude-buddy-statusline
 claude-buddy setup
 ```
 
-`setup` appends one line to `statusline.sh` (on) and rolls your first companion automatically.
+`setup` appends one line to `statusline.sh` and configures `settings.json` automatically. Rolls your first companion too.
 
 Don't like it? Run `claude-buddy companion --reroll`.
 
