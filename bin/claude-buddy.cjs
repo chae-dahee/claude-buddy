@@ -51,16 +51,17 @@ Usage:
   claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown
                                                     Edit companion fields directly
   claude-buddy show                                 Print buddy directly to terminal
-  claude-buddy setup                                Install into statusline-command.sh
-  claude-buddy setup --uninstall                    Remove from statusline-command.sh
+  claude-buddy setup                                Install into statusline.sh + configure settings.json
+  claude-buddy setup --layout side-by-side          Side-by-side layout when migrating existing command
+  claude-buddy setup --uninstall                    Remove from statusline.sh + restore settings.json
 
 Integration (auto):
   claude-buddy setup
 
 Integration (manual):
-  Append this single line to your ~/.claude/statusline-command.sh:
+  Append this single line to your ~/.claude/statusline.sh:
 
-      claude-buddy statusline
+      command -v claude-buddy &>/dev/null && claude-buddy statusline
 `);
       if (command) process.exit(1);
       break;
