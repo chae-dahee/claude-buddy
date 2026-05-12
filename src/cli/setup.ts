@@ -52,7 +52,7 @@ function runInstall(scriptPath: string): void {
   }
 }
 
-function injectSettings(scriptPath: string): void {
+function injectSettings(scriptPath: string, layout: 'sequential' | 'side-by-side'): void {
   const settings = readSettings();
   const existing = settings['statusLine'] as Record<string, unknown> | undefined;
   const buddyCmd = `bash ${scriptPath}`;
@@ -69,8 +69,17 @@ function injectSettings(scriptPath: string): void {
     if (!content.includes(MIGRATION_PREFIX)) {
       const lines = content.split('\n');
       const insertAt = lines[0]?.startsWith('#!') ? 1 : 0;
-      lines.splice(insertAt, 0, `${MIGRATION_PREFIX}${theirCmd}`, theirCmd);
-      fs.writeFileSync(scriptPath, lines.join('\n'), 'utf-8');
+      if (layout === 'side-by-side') {
+        const withoutBuddy = lines.filter((l) => !l.includes('claude-buddy'));
+        withoutBuddy.splice(insertAt, 0,
+          `${MIGRATION_PREFIX}${theirCmd}`,
+          `paste -d'   ' <(${STATUSLINE_MARKER}) <(${theirCmd})`,
+        );
+        fs.writeFileSync(scriptPath, withoutBuddy.join('\n'), 'utf-8');
+      } else {
+        lines.splice(insertAt, 0, `${MIGRATION_PREFIX}${theirCmd}`, theirCmd);
+        fs.writeFileSync(scriptPath, lines.join('\n'), 'utf-8');
+      }
     }
     settings['statusLine'] = { type: 'command', command: buddyCmd };
     writeSettings(settings);
@@ -144,8 +153,13 @@ export function runSetup(args: string[]): void {
     return;
   }
 
+  const layoutIdx = args.indexOf('--layout');
+  const layout = layoutIdx !== -1 && args[layoutIdx + 1] === 'side-by-side'
+    ? 'side-by-side' as const
+    : 'sequential' as const;
+
   runInstall(scriptPath);
-  injectSettings(scriptPath);
+  injectSettings(scriptPath, layout);
 
   console.log('\n  Restart Claude Code to see your buddy.');
 
