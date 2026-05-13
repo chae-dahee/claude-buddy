@@ -38,12 +38,14 @@ tests/
 
 ## Release
 
-Releases are managed by the project owner. Pushing a `v*` tag triggers GitHub Actions to build, test, and publish to npm automatically.
+Releases are managed by the project owner.
 
 ```bash
-npm version patch   # or minor / major
-git push --follow-tags
+npm version patch   # or minor / major — bumps package.json and commits
+git push origin main
 ```
+
+Then create a GitHub Release on the repository's Releases page. Publishing the release triggers GitHub Actions to build, test, and publish to npm automatically.
 
 ## Contributing
 
