@@ -13,7 +13,7 @@
   "homepage": "https://github.com/chae-dahee/claude-buddy",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chae-dahee/claude-buddy"
+    "url": "git+https://github.com/chae-dahee/claude-buddy.git"
   },
   "bugs": {
     "url": "https://github.com/chae-dahee/claude-buddy/issues"
@@ -44,6 +44,6 @@
     "typescript": "^5.4.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.14.0"
   }
 }

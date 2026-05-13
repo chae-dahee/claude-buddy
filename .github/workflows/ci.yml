@@ -14,13 +14,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           package-manager-cache: false
-
-      - name: Upgrade npm
-        run: |
-          corepack enable
-          corepack prepare npm@11 --activate
 
       - run: npm ci
 
