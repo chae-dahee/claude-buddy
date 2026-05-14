@@ -34,7 +34,7 @@ async function main() {
       break;
     }
     case 'statusline': {
-      await load('statusline/status-line.js');
+      await load('statusline/statusline.js');
       break;
     }
     case 'setup': {
