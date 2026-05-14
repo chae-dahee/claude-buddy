@@ -17,6 +17,10 @@ function statuslineScriptPath(): string {
   return path.join(claudeConfigDir(), 'statusline.sh');
 }
 
+function userStatuslineScriptPath(): string {
+  return path.join(claudeConfigDir(), 'statusline-user.sh');
+}
+
 function settingsJsonPath(): string {
   return path.join(claudeConfigDir(), 'settings.json');
 }
@@ -36,21 +40,40 @@ function writeSettings(settings: Record<string, unknown>): void {
   fs.writeFileSync(settingsJsonPath(), JSON.stringify(settings, null, 2) + '\n', 'utf-8');
 }
 
-function runInstall(scriptPath: string): void {
+function ensureScript(scriptPath: string): void {
   if (!fs.existsSync(scriptPath)) {
-    fs.writeFileSync(scriptPath, `${SHEBANG}\n${STATUSLINE_MARKER}\n`, 'utf-8');
+    fs.writeFileSync(scriptPath, `${SHEBANG}\n`, 'utf-8');
     fs.chmodSync(scriptPath, 0o755);
-    console.log(`✓ Created ${scriptPath}`);
-  } else {
-    const content = fs.readFileSync(scriptPath, 'utf-8');
-    if (content.includes('claude-buddy')) {
-      console.log(`✓ Already installed in ${scriptPath}`);
-      return;
-    }
-    const appended = content.endsWith('\n') ? content : content + '\n';
-    fs.writeFileSync(scriptPath, appended + STATUSLINE_MARKER + '\n', 'utf-8');
-    console.log(`✓ Appended to ${scriptPath}`);
   }
+}
+
+function buildBuddyLines(
+  theirCmd: string,
+  layout: 'sequential' | 'side-by-side',
+): string[] {
+  if (layout === 'side-by-side') {
+    return [
+      `${MIGRATION_PREFIX}${theirCmd}`,
+      `_cb_in=$(cat)`,
+      `_cb_b=$(command -v claude-buddy &>/dev/null && claude-buddy statusline </dev/null)`,
+      `_cb_t=$(printf '%s\\n' "$_cb_in" | ${theirCmd})`,
+      `paste -d ' ' <(printf '%s\\n' "$_cb_b") <(printf '%s\\n' "$_cb_t")`,
+    ];
+  }
+  return [
+    `${MIGRATION_PREFIX}${theirCmd}`,
+    `_cb_in=$(cat)`,
+    `printf '%s\\n' "$_cb_in" | ${theirCmd}`,
+    `${STATUSLINE_MARKER} </dev/null`,
+  ];
+}
+
+function isBuddyLine(l: string, theirCmd: string | null): boolean {
+  if (l.startsWith(MIGRATION_PREFIX)) return true;
+  if (l.includes(STATUSLINE_MARKER)) return true;
+  if (l.includes('_cb_')) return true;
+  if (theirCmd !== null && l === theirCmd) return true;
+  return false;
 }
 
 function injectSettings(scriptPath: string, layout: 'sequential' | 'side-by-side'): void {
@@ -58,41 +81,69 @@ function injectSettings(scriptPath: string, layout: 'sequential' | 'side-by-side
   if (settings === null) return;
   const existing = settings['statusLine'] as Record<string, unknown> | undefined;
   const buddyCmd = `bash ${scriptPath}`;
+  const userScriptPath = userStatuslineScriptPath();
+  const fileContent = fs.readFileSync(scriptPath, 'utf-8');
+  const lines = fileContent.split('\n');
 
-  if (existing?.['command'] === buddyCmd) {
-    console.log('✓ settings.json statusLine already configured.');
-    return;
+  // theirCmd priority: MIGRATION_PREFIX line > settings.json (non-buddy) > user's custom script at buddy path
+  const migrationLine = lines.find((l) => l.startsWith(MIGRATION_PREFIX));
+  const hasNonBuddyContent = lines.some(
+    (l) => l.trim() && !l.startsWith('#!') && !isBuddyLine(l, null),
+  );
+
+  let theirCmd: string | null = null;
+  let isCustomScriptMigration = false;
+
+  if (migrationLine) {
+    theirCmd = migrationLine.slice(MIGRATION_PREFIX.length);
+  } else if (typeof existing?.['command'] === 'string' && existing['command'] !== buddyCmd) {
+    theirCmd = existing['command'];
+  } else if (existing?.['command'] === buddyCmd && hasNonBuddyContent) {
+    // User wrote their own script at the buddy path. Save it (minus any buddy lines)
+    // so the wrapper can call it back.
+    const userContent = lines.filter((l) => !isBuddyLine(l, null)).join('\n');
+    fs.writeFileSync(userScriptPath, userContent, 'utf-8');
+    fs.chmodSync(userScriptPath, 0o755);
+    theirCmd = `bash ${userScriptPath}`;
+    isCustomScriptMigration = true;
   }
 
-  if (existing?.['command']) {
-    // User has a different statusLine command — migrate it into statusline.sh
-    const theirCmd = existing['command'] as string;
-    const content = fs.readFileSync(scriptPath, 'utf-8');
-    if (!content.includes(MIGRATION_PREFIX)) {
-      const lines = content.split('\n');
-      const insertAt = lines[0]?.startsWith('#!') ? 1 : 0;
-      if (layout === 'side-by-side') {
-        const withoutBuddy = lines.filter((l) => !l.includes('claude-buddy'));
-        withoutBuddy.splice(insertAt, 0,
-          `${MIGRATION_PREFIX}${theirCmd}`,
-          `paste -d'   ' <(${STATUSLINE_MARKER}) <(${theirCmd})`,
-        );
-        fs.writeFileSync(scriptPath, withoutBuddy.join('\n'), 'utf-8');
-      } else {
-        lines.splice(insertAt, 0, `${MIGRATION_PREFIX}${theirCmd}`, theirCmd);
-        fs.writeFileSync(scriptPath, lines.join('\n'), 'utf-8');
-      }
+  let finalContent: string;
+  if (theirCmd) {
+    const buddyLines = buildBuddyLines(theirCmd, layout);
+    if (isCustomScriptMigration) {
+      // Replace file entirely — original content is saved in statusline-user.sh.
+      const shebang = lines[0]?.startsWith('#!') ? lines[0] : SHEBANG;
+      finalContent = [shebang, ...buddyLines].join('\n') + '\n';
+    } else {
+      const cleaned = lines.filter((l) => !isBuddyLine(l, theirCmd));
+      const insertAt = cleaned[0]?.startsWith('#!') ? 1 : 0;
+      cleaned.splice(insertAt, 0, ...buddyLines);
+      finalContent = cleaned.join('\n');
     }
-    settings['statusLine'] = { type: 'command', command: buddyCmd };
-    writeSettings(settings);
-    console.log('✓ Migrated existing statusLine command into statusline.sh.');
-    console.log('✓ settings.json updated.');
-    return;
+  } else {
+    const cleaned = lines.filter((l) => !isBuddyLine(l, null));
+    const insertAt = cleaned[0]?.startsWith('#!') ? 1 : 0;
+    cleaned.splice(insertAt, 0, STATUSLINE_MARKER);
+    finalContent = cleaned.join('\n');
   }
 
+  fs.writeFileSync(scriptPath, finalContent, 'utf-8');
+  const alreadySet = existing?.['command'] === buddyCmd;
   settings['statusLine'] = { type: 'command', command: buddyCmd };
   writeSettings(settings);
-  console.log('✓ settings.json statusLine configured.');
+
+  if (isCustomScriptMigration) {
+    console.log('✓ Saved your statusline.sh to statusline-user.sh.');
+    console.log('✓ statusline.sh rewritten.');
+  } else if (theirCmd) {
+    console.log('✓ Migrated existing statusLine command into statusline.sh.');
+    console.log('✓ settings.json updated.');
+  } else if (!alreadySet) {
+    console.log('✓ settings.json statusLine configured.');
+  } else {
+    console.log('✓ statusline.sh updated.');
+  }
 }
 
 function runUninstall(scriptPath: string): void {
@@ -103,12 +154,21 @@ function runUninstall(scriptPath: string): void {
   }
 
   const lines = fs.readFileSync(scriptPath, 'utf-8').split('\n');
-
   const migrationLine = lines.find((l) => l.startsWith(MIGRATION_PREFIX));
   const originalCmd = migrationLine ? migrationLine.slice(MIGRATION_PREFIX.length) : null;
+  const userScriptPath = userStatuslineScriptPath();
+
+  // Custom script migration reverse: restore statusline-user.sh → statusline.sh
+  if (originalCmd === `bash ${userScriptPath}` && fs.existsSync(userScriptPath)) {
+    fs.copyFileSync(userScriptPath, scriptPath);
+    fs.unlinkSync(userScriptPath);
+    console.log('✓ Restored original statusline.sh from statusline-user.sh.');
+    // settings.json still points to bash statusline.sh — no change needed
+    return;
+  }
 
   const filtered = lines.filter(
-    (l) => !l.includes('claude-buddy') && !(originalCmd && l === originalCmd),
+    (l) => !isBuddyLine(l, originalCmd),
   );
   fs.writeFileSync(scriptPath, filtered.join('\n'), 'utf-8');
   console.log(`✓ Removed from ${scriptPath}`);
@@ -161,7 +221,7 @@ export function runSetup(args: string[]): void {
     ? 'side-by-side' as const
     : 'sequential' as const;
 
-  runInstall(scriptPath);
+  ensureScript(scriptPath);
   injectSettings(scriptPath, layout);
 
   console.log('\n  Restart Claude Code to see your buddy.');
