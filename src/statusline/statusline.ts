@@ -1,10 +1,5 @@
 /**
- * Statusline character renderer.
- *
- * Designed to be appended as ONE line in the user's existing
- * ~/.claude/statusline-command.sh:
- *
- *   node /path/to/dist/statusline/status-line.js
+ * Statusline character renderer — invoked by ~/.claude/statusline.sh.
  *
  * Frame toggles every 60 seconds (2-minute cycle) for a subtle blink effect.
  * Reads (drains) stdin to avoid EPIPE; payload is not used.
