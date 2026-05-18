@@ -1,3 +1,13 @@
+/**
+ * `claude-buddy setup` — wire (or unwire) the buddy into Claude Code's
+ * statusline. Edits two files in ~/.claude/:
+ *   - statusline.sh    : bash script invoked by Claude Code
+ *   - settings.json    : sets `statusLine.command` to `bash statusline.sh`
+ *
+ * Setup is idempotent and preserves any pre-existing statusline command the
+ * user already had — migrated via a `# claude-buddy:migrated=<cmd>` marker so
+ * uninstall can restore it.
+ */
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -47,6 +57,12 @@ function ensureScript(scriptPath: string): void {
   }
 }
 
+/**
+ * Build the statusline.sh body that runs buddy alongside the user's existing
+ * statusline command. `sequential` prints buddy after the user's output;
+ * `side-by-side` pastes the two outputs column-aligned with `paste`.
+ * The first line is always the MIGRATION_PREFIX marker so uninstall can recover `theirCmd`.
+ */
 function buildBuddyLines(
   theirCmd: string,
   layout: 'sequential' | 'side-by-side',
@@ -68,6 +84,12 @@ function buildBuddyLines(
   ];
 }
 
+/**
+ * Detect a line previously injected by setup so it can be stripped before
+ * re-injecting. Matches the migration marker, the canonical invocation, or any
+ * `_cb_*` shell variable. When `theirCmd` is provided, the migrated command
+ * line itself is also matched.
+ */
 function isBuddyLine(l: string, theirCmd: string | null): boolean {
   if (l.startsWith(MIGRATION_PREFIX)) return true;
   if (l.includes(STATUSLINE_MARKER)) return true;
@@ -76,6 +98,18 @@ function isBuddyLine(l: string, theirCmd: string | null): boolean {
   return false;
 }
 
+/**
+ * Rewrite statusline.sh and point settings.json's statusLine command at it.
+ *
+ * Detects an existing user statusline (their command) by, in order:
+ *   1. `# claude-buddy:migrated=<cmd>` marker in the script (re-runs)
+ *   2. settings.json `statusLine.command` (first install over a different command)
+ *   3. settings.json already points at the buddy path but the script has
+ *      non-buddy content → user wrote their own script there. The original
+ *      body is copied to statusline-user.sh and called back from the wrapper.
+ *
+ * If no existing command is found, only the canonical buddy invocation is written.
+ */
 function injectSettings(scriptPath: string, layout: 'sequential' | 'side-by-side'): void {
   const settings = readSettings();
   if (settings === null) return;
@@ -146,6 +180,12 @@ function injectSettings(scriptPath: string, layout: 'sequential' | 'side-by-side
   }
 }
 
+/**
+ * Reverse `injectSettings`: strip buddy lines from statusline.sh and, if
+ * settings.json still points at the buddy path, restore the migrated command
+ * (or delete the entry when the script is empty). Custom-script migrations
+ * are restored by copying statusline-user.sh back over statusline.sh.
+ */
 function runUninstall(scriptPath: string): void {
   if (!fs.existsSync(scriptPath)) {
     console.log('Nothing to uninstall — statusline.sh not found.');
@@ -208,6 +248,14 @@ function showFirstRun(): void {
   console.log(`  ${bones.species} · ${bones.rarity}  eye:${bones.eye}  hat:${bones.hat}`);
 }
 
+/**
+ * Entry point for the `setup` subcommand.
+ *
+ * Flags:
+ *   --uninstall                       reverse a previous setup
+ *   --layout sequential|side-by-side  how buddy composes with the user's existing
+ *                                     statusline (default: sequential)
+ */
 export function runSetup(args: string[]): void {
   const scriptPath = statuslineScriptPath();
 

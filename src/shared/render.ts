@@ -4,6 +4,7 @@ import { pickMessage } from './messages.js';
 
 // ─── Sprite art (4 lines per species, {E} = eye placeholder) ─────────────────
 
+/** 4-line ASCII sprite per species. `{E}` placeholders are replaced with the eye glyph at render time. */
 export const SPRITES: Record<Species, string[]> = {
   duck: [
     '     __      ',
@@ -117,6 +118,7 @@ export const SPRITES: Record<Species, string[]> = {
 
 // ─── Hat overlays (prepended as line 0 when hat ≠ 'none') ────────────────────
 
+/** Single-line hat art prepended above the sprite. `'none'` is an empty string so callers can skip the row. */
 export const HAT_LINES: Record<Hat, string> = {
   none:       '',
   crown:      '   \\^^^/    ',
@@ -130,6 +132,7 @@ export const HAT_LINES: Record<Hat, string> = {
 
 // ─── Compact inline face (for status line) ───────────────────────────────────
 
+/** Single-line face used by the gacha CLI summary — same `{E}` substitution as SPRITES. */
 export const FACE_INLINE: Record<Species, string> = {
   duck:     '({E}>',
   goose:    '({E}>',
@@ -153,6 +156,7 @@ export const FACE_INLINE: Record<Species, string> = {
 
 // ─── Rarity stars & colors ───────────────────────────────────────────────────
 
+/** Star count per rarity — 1 for common up to 5 for legendary. */
 export const RARITY_STARS: Record<Rarity, string> = {
   common:    '★',
   uncommon:  '★★',
