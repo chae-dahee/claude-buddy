@@ -49,6 +49,16 @@ function showCompanion(bones: CompanionBones, name: string): void {
   console.log(`  stats:   DEBUG:${bones.stats['DEBUGGING']} PAT:${bones.stats['PATIENCE']} CHAOS:${bones.stats['CHAOS']} WIS:${bones.stats['WISDOM']} SNARK:${bones.stats['SNARK']}`);
 }
 
+/**
+ * Entry point for the `companion` subcommand.
+ *
+ * Three modes, picked by argv:
+ * - `--reroll`            → roll a fresh random pet and replace stored bones
+ * - `--<field> <value>`   → patch one or more bone fields (rarity/species/eye/hat/shiny) and save
+ * - (no flags)            → show the current companion
+ *
+ * Invalid field values exit with code 1.
+ */
 export function runCompanion(args: string[]): void {
   const opts = parseArgs(args);
 
