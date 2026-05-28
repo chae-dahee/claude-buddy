@@ -223,3 +223,53 @@ test('renderCharacter default frame matches frame:0', () => {
   const f0  = renderCharacter(mockBones, mockConfig, { withMessage: false, frame: 0 });
   assert.deepEqual(def, f0);
 });
+
+// ─── State-based rendering regression ─────────────────────────────────────────
+
+test('renderCharacter: stateLevel/stateProgress override progressionFromAge', () => {
+  // A config that would give level 1 from age, but we pass stateLevel=5
+  const config = { id: 'x', name: 'Buddy', createdAt: Date.now() };
+  const lines = renderCharacter(mockBones, config, {
+    withMessage: false,
+    stateLevel: 5,
+    stateProgress: 0.5,
+  });
+  const infoLine = lines.find((l) => l.includes('Lv.'));
+  assert.ok(infoLine.includes('Lv.5'), `Expected Lv.5 in: ${infoLine}`);
+});
+
+test('renderCharacter: progress bar reflects stateProgress', () => {
+  const config = { id: 'x', name: 'Buddy', createdAt: Date.now() };
+  const full = renderCharacter(mockBones, config, {
+    withMessage: false,
+    stateLevel: 1,
+    stateProgress: 1.0,
+  });
+  const empty = renderCharacter(mockBones, config, {
+    withMessage: false,
+    stateLevel: 1,
+    stateProgress: 0.0,
+  });
+  const fullBar = full.find((l) => l.includes('['));
+  const emptyBar = empty.find((l) => l.includes('['));
+  assert.ok(fullBar.includes('██████████'), `Full bar expected: ${fullBar}`);
+  assert.ok(emptyBar.includes('░░░░░░░░░░'), `Empty bar expected: ${emptyBar}`);
+});
+
+test('renderCharacter: migration regression — 200-day buddy stays Lv.29 via state', () => {
+  // Simulate migration: 200 days = floor(200/7)+1 = 29
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const createdAt = Date.now() - 200 * 24 * 60 * 60 * 1000;
+  const elapsed = Date.now() - createdAt;
+  const migratedLevel = Math.floor(elapsed / WEEK_MS) + 1;
+  assert.equal(migratedLevel, 29);
+
+  const config = { id: 'x', name: 'Buddy', createdAt };
+  const lines = renderCharacter(mockBones, config, {
+    withMessage: false,
+    stateLevel: migratedLevel,
+    stateProgress: 0,
+  });
+  const infoLine = lines.find((l) => l.includes('Lv.'));
+  assert.ok(infoLine.includes('Lv.29'), `Expected Lv.29 in: ${infoLine}`);
+});
