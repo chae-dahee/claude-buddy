@@ -4,3 +4,5 @@ export * from './shared/config.js';
 export * from './shared/companion.js';
 export * from './shared/messages.js';
 export * from './shared/render.js';
+export * from './shared/state.js';
+export * from './shared/tick.js';

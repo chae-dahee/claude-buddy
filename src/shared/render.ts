@@ -249,6 +249,13 @@ export interface CharacterRenderOptions {
   withMessage?: boolean;
   /** 0 = base eye, 1 = EYE_ALT. Defaults to 0. */
   frame?: 0 | 1;
+  /**
+   * State-based level override. When provided, used instead of progressionFromAge.
+   * Pass state.level + state.exp/threshold(state.level) for Phase 1+ EXP system.
+   */
+  stateLevel?: number;
+  /** Progress fraction 0..1 derived from state.exp / threshold(state.level). */
+  stateProgress?: number;
 }
 
 /**
@@ -262,7 +269,10 @@ export function renderCharacter(
   opts: CharacterRenderOptions = {},
 ): string[] {
   const now = opts.now ?? new Date();
-  const { level, progress } = progressionFromAge(config.createdAt, now.getTime());
+  const progression = (opts.stateLevel !== undefined && opts.stateProgress !== undefined)
+    ? { level: opts.stateLevel, progress: opts.stateProgress }
+    : progressionFromAge(config.createdAt, now.getTime());
+  const { level, progress } = progression;
 
   const color = RARITY_COLORS[bones.rarity];
   const reset = color ? RESET : '';
