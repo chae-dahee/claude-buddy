@@ -35,6 +35,34 @@ function settingsJsonPath(): string {
   return path.join(claudeConfigDir(), 'settings.json');
 }
 
+function commandsDirPath(): string {
+  return path.join(claudeConfigDir(), 'commands');
+}
+
+const SLASH_COMMANDS: Array<{ file: string; content: string }> = [
+  { file: 'buddy-great.md', content: '!claude-buddy great\n' },
+  { file: 'buddy-treat.md', content: '!claude-buddy treat\n' },
+];
+
+function installCommands(): void {
+  const dir = commandsDirPath();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  for (const { file, content } of SLASH_COMMANDS) {
+    fs.writeFileSync(path.join(dir, file), content, 'utf-8');
+  }
+  console.log('✓ /buddy-great and /buddy-treat slash commands installed.');
+}
+
+function uninstallCommands(): void {
+  const dir = commandsDirPath();
+  for (const { file } of SLASH_COMMANDS) {
+    const p = path.join(dir, file);
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+}
+
 function readSettings(): Record<string, unknown> | null {
   const p = settingsJsonPath();
   if (!fs.existsSync(p)) return {};
@@ -261,6 +289,7 @@ export function runSetup(args: string[]): void {
 
   if (args.includes('--uninstall')) {
     runUninstall(scriptPath);
+    uninstallCommands();
     return;
   }
 
@@ -271,6 +300,7 @@ export function runSetup(args: string[]): void {
 
   ensureScript(scriptPath);
   injectSettings(scriptPath, layout);
+  installCommands();
 
   console.log('\n  Restart Claude Code to see your buddy.');
 
