@@ -40,8 +40,24 @@ function commandsDirPath(): string {
 }
 
 const SLASH_COMMANDS: Array<{ file: string; content: string }> = [
-  { file: 'buddy-great.md', content: '!claude-buddy great\n' },
-  { file: 'buddy-treat.md', content: '!claude-buddy treat\n' },
+  {
+    file: 'buddy-great.md',
+    content: `---
+description: 버디한테 칭찬해주기 (일 3회 한도)
+---
+
+!claude-buddy great
+`,
+  },
+  {
+    file: 'buddy-treat.md',
+    content: `---
+description: 버디한테 간식 주기 (일 3회 한도)
+---
+
+!claude-buddy treat
+`,
+  },
 ];
 
 function installCommands(): void {
