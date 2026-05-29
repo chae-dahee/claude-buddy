@@ -34,3 +34,53 @@ export function pickMessage(now: Date = new Date(), rng: () => number = Math.ran
   const pool = rng() < 0.5 ? GENERIC : timedPool(now.getHours());
   return pool[Math.floor(rng() * pool.length)]!;
 }
+
+// ─── Great / Treat messages ───────────────────────────────────────────────────
+
+const GREAT_ACCEPTED = [
+  '으아- 고마워요! 더 열심히 할게요!',
+  '칭찬 받으니까 기분이 좋아요~',
+  '헤헤, 오늘 더 잘할 수 있을 것 같아요!',
+  '감사해요! 힘이 솟아요!',
+  '와, 정말요? 최고예요!',
+];
+
+const TREAT_ACCEPTED = [
+  '맛있다! 간식 고마워요!',
+  '냠냠- 최고예요!',
+  '간식 받으니까 행복해요~',
+  '이거 진짜 맛있어요! 또 줘도 돼요!',
+  '감사해요, 에너지 충전!',
+];
+
+const GREAT_REFUSED = [
+  '오늘은 이미 충분히 칭찬받았어요! 내일 또 해줘요~',
+  '에헤, 오늘 칭찬은 다 썼어요! 내일 기대할게요!',
+  '고마운데… 오늘은 여기까지예요! 내일 또요!',
+];
+
+const TREAT_REFUSED = [
+  '오늘은 간식을 너무 많이 먹었어요! 내일 또 줘요~',
+  '배불러요! 내일 받을게요!',
+  '고마운데, 오늘 간식은 끝이에요! 내일 또요!',
+];
+
+function pick(pool: string[], rng: () => number = Math.random): string {
+  return pool[Math.floor(rng() * pool.length)]!;
+}
+
+export function pickGreatMessage(rng: () => number = Math.random): string {
+  return pick(GREAT_ACCEPTED, rng);
+}
+
+export function pickTreatMessage(rng: () => number = Math.random): string {
+  return pick(TREAT_ACCEPTED, rng);
+}
+
+export function pickGreatRefusedMessage(rng: () => number = Math.random): string {
+  return pick(GREAT_REFUSED, rng);
+}
+
+export function pickTreatRefusedMessage(rng: () => number = Math.random): string {
+  return pick(TREAT_REFUSED, rng);
+}
