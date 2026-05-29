@@ -42,6 +42,16 @@ async function main() {
       runSetup(args);
       break;
     }
+    case 'great': {
+      const { runGreat } = await load('cli/great.js');
+      runGreat();
+      break;
+    }
+    case 'treat': {
+      const { runTreat } = await load('cli/treat.js');
+      runTreat();
+      break;
+    }
     default: {
       console.log(`claude-buddy — terminal companion (statusline-only)
 
@@ -54,6 +64,8 @@ Usage:
   claude-buddy setup                                Install into statusline.sh + configure settings.json
   claude-buddy setup --layout side-by-side          Side-by-side layout when migrating existing command
   claude-buddy setup --uninstall                    Remove from statusline.sh + restore settings.json
+  claude-buddy great                                Give the buddy a compliment (up to 3/day)
+  claude-buddy treat                                Give the buddy a snack (up to 3/day)
 
 Integration (auto):
   claude-buddy setup
