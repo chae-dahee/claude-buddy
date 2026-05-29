@@ -319,6 +319,7 @@ export function runSetup(args: string[]): void {
   installCommands();
 
   console.log('\n  Restart Claude Code to see your buddy.');
+  console.log('  Use /buddy-great or /buddy-treat in Claude Code to interact.');
 
   showFirstRun();
 }
