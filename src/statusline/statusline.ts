@@ -9,7 +9,7 @@ import { readFileSync } from 'fs';
 import { loadCompanion } from '../shared/companion.js';
 import { loadConfig } from '../shared/config.js';
 import { loadState, saveState } from '../shared/state.js';
-import { tick, threshold } from '../shared/tick.js';
+import { tick, threshold, deriveMood } from '../shared/tick.js';
 import { renderCharacter } from '../shared/render.js';
 
 /** Read stdin and attempt to extract a session token count. Returns undefined on failure. */
@@ -46,6 +46,7 @@ function main(): void {
     const now = Date.now();
 
     const state = loadState();
+    const mood = deriveMood(state, now);
     tick(state, { now, sessionTokens, updateLastSeen: true });
     saveState(state);
 
@@ -54,6 +55,8 @@ function main(): void {
       frame: currentFrame(),
       stateLevel: state.level,
       stateProgress,
+      mood,
+      hunger: state.hunger,
     });
     process.stdout.write(lines.join('\n') + '\n');
   } catch {

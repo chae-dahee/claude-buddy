@@ -6,6 +6,7 @@ import {
   renderCharacter,
   SPRITES, FACE_INLINE, RARITY_STARS, RARITY_COLORS, EYE_ALT,
   renderSprite, renderFaceInline,
+  MOOD_KAOMOJI, hungerGauge,
 } from '../dist/shared/render.js';
 
 const ALL_SPECIES = [
@@ -255,6 +256,102 @@ test('renderCharacter: progress bar reflects stateProgress', () => {
   assert.ok(fullBar.includes('██████████'), `Full bar expected: ${fullBar}`);
   assert.ok(emptyBar.includes('░░░░░░░░░░'), `Empty bar expected: ${emptyBar}`);
 });
+
+// ─── hungerGauge ─────────────────────────────────────────────────────────────
+
+test('hungerGauge(0) = ●●●● (만복)', () => {
+  assert.equal(hungerGauge(0), '●●●●');
+});
+
+test('hungerGauge(4) = ○○○○ (배고픔)', () => {
+  assert.equal(hungerGauge(4), '○○○○');
+});
+
+test('hungerGauge(2) = ●●○○ (중간)', () => {
+  assert.equal(hungerGauge(2), '●●○○');
+});
+
+test('hungerGauge(1) = ●●●○', () => {
+  assert.equal(hungerGauge(1), '●●●○');
+});
+
+test('hungerGauge(3) = ●○○○', () => {
+  assert.equal(hungerGauge(3), '●○○○');
+});
+
+test('hungerGauge: 음수는 0으로 클램프', () => {
+  assert.equal(hungerGauge(-1), '●●●●');
+});
+
+test('hungerGauge: 4 초과는 4로 클램프', () => {
+  assert.equal(hungerGauge(10), '○○○○');
+});
+
+test('hungerGauge: 항상 4글자', () => {
+  for (const h of [0, 1, 2, 3, 4]) {
+    assert.equal([...hungerGauge(h)].length, 4);
+  }
+});
+
+// ─── MOOD_KAOMOJI ─────────────────────────────────────────────────────────────
+
+test('MOOD_KAOMOJI: happy = (^_^)', () => {
+  assert.equal(MOOD_KAOMOJI.happy, '(^_^)');
+});
+
+test('MOOD_KAOMOJI: neutral = (-_-)', () => {
+  assert.equal(MOOD_KAOMOJI.neutral, '(-_-)');
+});
+
+test('MOOD_KAOMOJI: sad = (;_;)', () => {
+  assert.equal(MOOD_KAOMOJI.sad, '(;_;)');
+});
+
+// ─── renderCharacter mood/hunger 통합 ────────────────────────────────────────
+
+test('renderCharacter: mood+hunger 제공 시 head에 카오모지와 게이지 포함', () => {
+  const lines = renderCharacter(mockBones, mockConfig, {
+    withMessage: false,
+    stateLevel: 3,
+    stateProgress: 0.5,
+    mood: 'sad',
+    hunger: 2,
+  });
+  const info = lines[lines.length - 1];
+  assert.ok(info.includes('(;_;)'), `head should include sad kaomoji: "${info}"`);
+  assert.ok(info.includes('●●○○'), `head should include hunger gauge: "${info}"`);
+});
+
+test('renderCharacter: mood=happy hunger=0 → (^_^) ●●●●', () => {
+  const lines = renderCharacter(mockBones, mockConfig, {
+    withMessage: false,
+    stateLevel: 1,
+    stateProgress: 0,
+    mood: 'happy',
+    hunger: 0,
+  });
+  const info = lines[lines.length - 1];
+  assert.ok(info.includes('(^_^)'));
+  assert.ok(info.includes('●●●●'));
+});
+
+test('renderCharacter: mood/hunger 미전달 시 카오모지 없음 (하위호환)', () => {
+  const lines = renderCharacter(mockBones, mockConfig, { withMessage: false });
+  const info = lines[lines.length - 1];
+  assert.ok(!info.includes('(^_^)') && !info.includes('(-_-)') && !info.includes('(;_;)'),
+    `info should have no kaomoji: "${info}"`);
+});
+
+test('renderCharacter: mood만 전달하고 hunger 미전달 시 카오모지 없음', () => {
+  const lines = renderCharacter(mockBones, mockConfig, {
+    withMessage: false,
+    mood: 'happy',
+  });
+  const info = lines[lines.length - 1];
+  assert.ok(!info.includes('(^_^)'), `info should have no kaomoji without hunger: "${info}"`);
+});
+
+// ─── State-based rendering regression ─────────────────────────────────────────
 
 test('renderCharacter: migration regression — 200-day buddy stays Lv.29 via state', () => {
   // Simulate migration: 200 days = floor(200/7)+1 = 29

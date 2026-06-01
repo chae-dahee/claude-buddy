@@ -150,3 +150,22 @@ test('applyTreat: TREAT_EXP는 양수', () => {
 test('applyTreat: TREAT_DAILY_LIMIT은 양수', () => {
   assert.ok(TREAT_DAILY_LIMIT > 0);
 });
+
+// ─── hunger 리셋 케이스 ──────────────────────────────────────────────────────
+
+test('applyTreat: 수락 시 hunger 0 리셋', () => {
+  const now = Date.now();
+  const state = makeState(now);
+  state.hunger = 3;
+  applyTreat(state, now, deterministicRng);
+  assert.equal(state.hunger, 0);
+});
+
+test('applyTreat: 거부 시 hunger 불변', () => {
+  const now = Date.now();
+  const state = makeState(now);
+  state.hunger = 3;
+  state.daily.giveTreatCount = TREAT_DAILY_LIMIT;
+  applyTreat(state, now, deterministicRng);
+  assert.equal(state.hunger, 3);
+});
