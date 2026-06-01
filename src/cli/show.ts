@@ -7,7 +7,7 @@
 import { loadCompanion } from '../shared/companion.js';
 import { loadConfig } from '../shared/config.js';
 import { loadState, saveState } from '../shared/state.js';
-import { tick, threshold } from '../shared/tick.js';
+import { tick, threshold, deriveMood } from '../shared/tick.js';
 import { renderCharacter } from '../shared/render.js';
 
 export function runShow(): void {
@@ -16,6 +16,7 @@ export function runShow(): void {
   const now = Date.now();
 
   const state = loadState();
+  const mood = deriveMood(state, now);
   tick(state, { now, updateLastSeen: false });
   saveState(state);
 
@@ -24,6 +25,8 @@ export function runShow(): void {
     withMessage: false,
     stateLevel: state.level,
     stateProgress,
+    mood,
+    hunger: state.hunger,
   });
   process.stdout.write(lines.join('\n') + '\n');
 }
