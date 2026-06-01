@@ -30,6 +30,7 @@ export function applyTreat(
   state.daily.giveTreatCount++;
   state.exp += TREAT_EXP;
   state.lastTreatAt = now;
+  state.hunger = 0;
 
   while (state.exp >= threshold(state.level)) {
     state.exp -= threshold(state.level);
