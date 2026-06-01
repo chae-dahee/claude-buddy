@@ -1,5 +1,6 @@
 import type { Species, Eye, Hat, Rarity, CompanionBones } from './types.js';
 import type { BuddyConfig } from './config.js';
+import type { Mood } from './tick.js';
 import { pickMessage } from './messages.js';
 
 // ─── Sprite art (4 lines per species, {E} = eye placeholder) ─────────────────
@@ -209,6 +210,21 @@ export function renderFaceInline(bones: CompanionBones): string {
   return applyEye(FACE_INLINE[bones.species], bones.eye);
 }
 
+// ─── Mood & Hunger display ────────────────────────────────────────────────────
+
+export const MOOD_KAOMOJI: Record<Mood, string> = {
+  happy:   '(^_^)',
+  neutral: '(-_-)',
+  sad:     '(;_;)',
+};
+
+/** hunger 0..4 → 만복 ●●●● ~ 배고픔 ○○○○ (fullness = 4 - hunger) */
+export function hungerGauge(hunger: number): string {
+  const h = Math.max(0, Math.min(4, Math.round(hunger)));
+  const full = 4 - h;
+  return '●'.repeat(full) + '○'.repeat(h);
+}
+
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 
 /** 10-cell bar from a 0..1 progress value (clamped) */
@@ -256,6 +272,10 @@ export interface CharacterRenderOptions {
   stateLevel?: number;
   /** Progress fraction 0..1 derived from state.exp / threshold(state.level). */
   stateProgress?: number;
+  /** Buddy mood — when provided alongside hunger, shown in the info line. */
+  mood?: Mood;
+  /** Buddy hunger 0..4 — when provided alongside mood, shown as a gauge in the info line. */
+  hunger?: number;
 }
 
 /**
@@ -281,7 +301,10 @@ export function renderCharacter(
   const bar        = progressBar(progress);
   const rarityTag  = `${color}${stars} ${bones.rarity}${reset}`;
 
-  const head = `${config.name} Lv.${level} [${bar}] ${rarityTag}`;
+  const statusSeg = (opts.mood !== undefined && opts.hunger !== undefined)
+    ? ` ${MOOD_KAOMOJI[opts.mood]} ${hungerGauge(opts.hunger)}`
+    : '';
+  const head = `${config.name}${statusSeg} Lv.${level} [${bar}] ${rarityTag}`;
   const info = opts.withMessage === false
     ? head
     : `${head} · ${pickMessage(now, opts.rng)}`;
