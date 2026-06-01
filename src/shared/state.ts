@@ -144,7 +144,26 @@ export function loadState(): StateFile {
   const config = loadConfig();
   const state = initStateFromMigration(config, Date.now());
   saveState(state);
+  cleanupLegacyState();
   return state;
+}
+
+/**
+ * Remove the orphaned v0.2 legacy state file (`state.json`), superseded by
+ * `buddy-state.json`. The legacy file is never read, so deletion is lossless.
+ * Runs only inside the migration branch (when buddy-state.json is absent or
+ * invalid), so it is effectively one-shot and idempotent. Failures are ignored
+ * so a cleanup error never breaks the statusline.
+ */
+function cleanupLegacyState(): void {
+  const legacy = path.join(STATE_DIR, 'state.json');
+  try {
+    if (fs.existsSync(legacy)) {
+      fs.unlinkSync(legacy);
+    }
+  } catch {
+    // Ignore: orphan cleanup must never break statusline/show
+  }
 }
 
 /**
