@@ -3,12 +3,38 @@ import assert from 'node:assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { spawnSync } from 'node:child_process';
 import {
   initStateFromMigration,
   todayLocal,
   isNewDay,
   resetDailyCounters,
 } from '../dist/shared/state.js';
+
+const DIST = new URL('../dist', import.meta.url).pathname;
+
+/** Run loadState() in a subprocess with CLAUDE_BUDDY_STATE_DIR isolated to `dir`. */
+function loadStateIn(dir) {
+  return spawnSync(
+    process.execPath,
+    ['--input-type=module', '--eval', `
+      import { loadState } from 'file://${path.join(DIST, 'shared/state.js')}';
+      const s = loadState();
+      process.stdout.write(JSON.stringify({ level: s.level }));
+    `],
+    {
+      encoding: 'utf-8',
+      env: { ...process.env, CLAUDE_BUDDY_STATE_DIR: dir },
+      timeout: 5000,
+    }
+  );
+}
+
+const VALID_STATE = JSON.stringify({
+  level: 7, exp: 0, hunger: 0, lastTickAt: 0, lastSeenAt: 0, lastTreatAt: 0,
+  tokensSeenTotal: 0, tokenExpAccrued: 0,
+  daily: { date: '2026-06-01', giveGreatCount: 0, giveTreatCount: 0 },
+});
 
 // ─── Test Setup ───────────────────────────────────────────────────────────────
 
@@ -272,4 +298,43 @@ test('initStateFromMigration: validates level calculation accuracy', () => {
     const state = initStateFromMigration(config, now);
     assert.equal(state.level, tc.expectedLevel, `Days: ${tc.days}`);
   }
+});
+
+// ─── 레거시 state.json 정리 (마이그레이션 분기) ─────────────────────────────────
+
+test('loadState: 마이그레이션 시 레거시 state.json 제거', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'buddy-legacy-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const legacy = path.join(dir, 'state.json');
+  fs.writeFileSync(legacy, '{"name":"Buddy","xp":2844,"level":29}', 'utf-8');
+
+  const result = loadStateIn(dir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(!fs.existsSync(legacy), 'legacy state.json should be removed after migration');
+  assert.ok(fs.existsSync(path.join(dir, 'buddy-state.json')), 'buddy-state.json should be created');
+});
+
+test('loadState: 레거시 state.json 없어도 마이그레이션 정상 (에러 없음)', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'buddy-legacy-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  const result = loadStateIn(dir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(!fs.existsSync(path.join(dir, 'state.json')));
+  assert.ok(fs.existsSync(path.join(dir, 'buddy-state.json')));
+});
+
+test('loadState: 유효한 buddy-state.json이 있으면 마이그레이션 안 하므로 레거시 state.json 보존', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'buddy-legacy-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  fs.writeFileSync(path.join(dir, 'buddy-state.json'), VALID_STATE, 'utf-8');
+  const legacy = path.join(dir, 'state.json');
+  fs.writeFileSync(legacy, '{"level":29}', 'utf-8');
+
+  const result = loadStateIn(dir);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).level, 7, 'should load existing buddy-state.json, not migrate');
+  assert.ok(fs.existsSync(legacy), 'legacy state.json must be untouched when no migration occurs');
 });
