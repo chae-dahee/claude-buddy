@@ -1,6 +1,6 @@
 {
   "name": "claude-buddy-statusline",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "A terminal buddy character for Claude Code — render-only ASCII companion injected into your statusline. Zero tokens, no hooks.",
   "keywords": [
     "claude",
