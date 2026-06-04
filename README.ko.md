@@ -9,7 +9,7 @@ Claude Code statusline에 사는 ASCII buddy입니다. 가챠로 뽑힙니다.
   ( ✦   ✦ )
   (  ω   )
   (")_(")
-Buddy Lv.3 [██████░░░░] ★★★ · 오늘도 코딩 파이팅!
+Buddy (^_^) ●●●● Lv.3 [██████░░░░] ★★★ · 오늘도 코딩 파이팅!
 ```
 
 English: [README.md](README.md)
@@ -54,6 +54,10 @@ claude-buddy setup --uninstall
 | `claude-buddy companion --reroll`                                         | 새로 뽑기                      |
 | `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | 직접 지정                      |
 | `claude-buddy show`                                                       | 터미널에 buddy 출력 (미리보기) |
+| `claude-buddy great`                                                      | 버디 칭찬하기 (하루 3회)       |
+| `claude-buddy treat`                                                      | 버디한테 간식 주기 — hunger 리셋 (하루 3회) |
+
+`setup`은 `/buddy-great` · `/buddy-treat` 슬래시 커맨드도 함께 설치하므로, Claude Code 세션 안에서 바로 버디에게 밥을 주고 칭찬할 수 있습니다.
 
 ## Companion 시스템
 
@@ -90,12 +94,32 @@ Lv.4   21일 후
 statusline의 진행 바 `[████░░░░░░]`는 현재 레벨 내 남은 날을 보여줍니다.
 꽉 찰수록 다음 레벨에 가깝습니다.
 
+## 기분 & 배고픔
+
+info 라인에 buddy의 현재 기분과 배고픔 게이지가 표시됩니다.
+
+```
+Buddy (^_^) ●●●● Lv.3 [██████░░░░] ★★★
+       │      │
+       │      └── 배고픔: ●●●● 만복 → ○○○○ 배고픔
+       └────────── 기분 카오모지
+```
+
+| 기분 | 카오모지 | 조건 |
+|------|----------|------|
+| 행복 | `(^_^)` | 오늘 `/buddy-great` 또는 `/buddy-treat` 사용 |
+| 보통 | `(-_-)` | 기본값 |
+| 슬픔 | `(;_;)` | 활동일(평일 기준) 3일 이상 Claude Code를 열지 않음 |
+
+배고픔은 시간이 지나면 점점 증가합니다. `/buddy-treat`로 다시 만복 상태로 리셋됩니다.
+
 ## 로컬 파일
 
 | 경로                             | 내용                                              |
 | -------------------------------- | ------------------------------------------------- |
 | `~/.claude-buddy/config.json`    | UUID 시드, 이름, 생성 시각                        |
 | `~/.claude-buddy/companion.json` | 뽑힌 데이터 (종족, 레어도, 눈, 모자, shiny, 스탯) |
+| `~/.claude-buddy/buddy-state.json` | 런타임 상태 (hunger, exp, lastSeen, 일일 인터랙션 횟수) |
 
 `config.json`의 `name`을 바꾸면 buddy 이름을 변경할 수 있습니다.
 `CLAUDE_BUDDY_STATE_DIR` 환경변수로 저장 위치를 바꿀 수 있습니다.

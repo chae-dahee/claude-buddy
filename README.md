@@ -9,7 +9,7 @@ No hooks · no `/dev/tty` writes · **zero tokens consumed**
   ( ✦   ✦ )
   (  ω   )
   (")_(")
-Buddy Lv.3 [██████░░░░] ★★★ · Keep shipping!
+Buddy (^_^) ●●●● Lv.3 [██████░░░░] ★★★ · Keep shipping!
 ```
 
 한국어: [README.ko.md](README.ko.md)
@@ -62,6 +62,10 @@ claude-buddy setup --uninstall
 | `claude-buddy companion --reroll` | Roll a new companion |
 | `claude-buddy companion --rarity epic --species blob --eye ✦ --hat crown` | Set fields directly |
 | `claude-buddy show` | Print buddy to terminal (preview) |
+| `claude-buddy great` | Compliment your buddy (up to 3×/day) |
+| `claude-buddy treat` | Feed your buddy a snack — resets hunger (up to 3×/day) |
+
+`setup` also installs `/buddy-great` and `/buddy-treat` slash commands, so you can feed and praise your buddy right inside a Claude Code session.
 
 ---
 
@@ -103,12 +107,34 @@ The fuller it is, the closer to the next level.
 
 ---
 
+## Mood & Hunger
+
+The info line shows your buddy's current mood and hunger gauge.
+
+```
+Buddy (^_^) ●●●● Lv.3 [██████░░░░] ★★★
+       │      │
+       │      └── hunger: ●●●● full → ○○○○ hungry
+       └────────── mood kaomoji
+```
+
+| Mood | Kaomoji | Condition |
+|------|---------|-----------|
+| Happy | `(^_^)` | Interacted today via `/buddy-great` or `/buddy-treat` |
+| Neutral | `(-_-)` | Default |
+| Sad | `(;_;)` | Claude Code not opened for 3+ active days |
+
+Hunger creeps up over time. `/buddy-treat` resets it back to full.
+
+---
+
 ## Local Files
 
 | Path | Description |
 |------|-------------|
 | `~/.claude-buddy/config.json` | UUID seed, name, creation timestamp |
 | `~/.claude-buddy/companion.json` | Rolled data (species, rarity, eye, hat, shiny, stats) |
+| `~/.claude-buddy/buddy-state.json` | Runtime state (hunger, exp, lastSeen, daily interaction counts) |
 
 Edit `name` in `config.json` to rename your buddy.
 
